@@ -5949,8 +5949,8 @@
     "clients": "Clients",
     "dsl": "Ligne DSL",
     "dslRate": "Débit desc. / mont.",
-    "dslSnr": "Marge SNR",
-    "dslAttenuation": "Atténuation",
+    "dslSnr": "Marge SNR down / up",
+    "dslAttenuation": "Atténuation down / up",
     "charts": "Historique depuis l'ACS",
     "pon": {
       "title": "Niveaux optiques PON",
@@ -5963,7 +5963,8 @@
       "notExposed": "non fourni par le CPE",
       "help": "Lus sur le CPE toutes les heures par la provision NSM ; dernière lecture {{when}} depuis"
     },
-    "lastSample": "Aucun échantillon sur cette période : le dernier reçu du CPE date du {{when}}."
+    "lastSample": "Aucun échantillon sur cette période : le dernier reçu du CPE date du {{when}}.",
+    "dslMaxRate": "Débit maximal down / up"
   },
   "serverMigration": {
     "subtitle": "Déplacer NSM vers un serveur à une autre adresse : ce serveur communique la nouvelle adresse aux agents MikroTik et aux CPE TR-069.",

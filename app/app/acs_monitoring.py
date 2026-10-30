@@ -162,6 +162,11 @@ def _up(status) -> bool:
     return str(status or "").strip().lower() in {"up", "connected", "enabled"}
 
 
+def _kbps(value):
+    number = _int(value)
+    return number * 1000 if number else None
+
+
 def _tenths(value):
     """TR-181/TR-098 noise margin and attenuation are in 0.1 dB."""
     number = _float(value)
@@ -229,19 +234,23 @@ def _tr181(root: dict, cr_host: str | None) -> dict:
         "standards": _value(radio, "OperatingStandards"), "clients": clients_by_radio.get(key),
     } for key, radio in _instances(wifi.get("Radio"))]
     state["wifi_clients"] = total_clients
-    # DSL: first line and channel.
+    # DSL: first line, and the channel in use (an Archer VR1210v has ADSL as channel 1, down, and VDSL as channel 2).
     lines = _instances(_value_obj(root, "DSL", "Line"))
     if lines:
         line = lines[0][1]
         channels = _instances(_value_obj(root, "DSL", "Channel"))
-        channel = channels[0][1] if channels else {}
+        channel = next((c for _key, c in channels if _up(_value(c, "Status"))), channels[0][1] if channels else {})
         up = _up(_value(line, "Status")) and str(_value(line, "LinkStatus") or "").lower() == "up"
         state["dsl"] = {
-            "status": _value(line, "Status"), "link_status": _value(line, "LinkStatus"), "standard": _value(line, "StandardUsed"),
+            "status": _value(line, "Status"), "link_status": _value(line, "LinkStatus"), "standard": _value(line, "StandardUsed") or _value(line, "X_TP_ModulationTypeUsed"),
             "down_bps": (_int(_value(channel, "DownstreamCurrRate")) or 0) * 1000 if up else None,
             "up_bps": (_int(_value(channel, "UpstreamCurrRate")) or 0) * 1000 if up else None,
+            "down_max_bps": _kbps(_value(line, "DownstreamMaxBitRate")) if up else None,
+            "up_max_bps": _kbps(_value(line, "UpstreamMaxBitRate")) if up else None,
             "snr_down_db": _tenths(_value(line, "DownstreamNoiseMargin")) if up else None,
+            "snr_up_db": _tenths(_value(line, "UpstreamNoiseMargin")) if up else None,
             "attenuation_down_db": _tenths(_value(line, "DownstreamAttenuation")) if up else None,
+            "attenuation_up_db": _tenths(_value(line, "UpstreamAttenuation")) if up else None,
         }
     return state
 
@@ -296,8 +305,12 @@ def _tr098(root: dict, cr_host: str | None) -> dict:
             state["dsl"] = {"status": _value(dsl, "Status"), "link_status": _value(dsl, "Status"), "standard": _value(dsl, "ModulationType"),
                             "down_bps": (_int(_value(dsl, "DownstreamCurrRate")) or 0) * 1000 if up else None,
                             "up_bps": (_int(_value(dsl, "UpstreamCurrRate")) or 0) * 1000 if up else None,
+                            "down_max_bps": _kbps(_value(dsl, "DownstreamMaxRate")) if up else None,
+                            "up_max_bps": _kbps(_value(dsl, "UpstreamMaxRate")) if up else None,
                             "snr_down_db": _tenths(_value(dsl, "DownstreamNoiseMargin")) if up else None,
-                            "attenuation_down_db": _tenths(_value(dsl, "DownstreamAttenuation")) if up else None}
+                            "snr_up_db": _tenths(_value(dsl, "UpstreamNoiseMargin")) if up else None,
+                            "attenuation_down_db": _tenths(_value(dsl, "DownstreamAttenuation")) if up else None,
+                            "attenuation_up_db": _tenths(_value(dsl, "UpstreamAttenuation")) if up else None}
             break
     return state
 
