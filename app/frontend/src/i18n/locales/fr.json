@@ -5731,6 +5731,9 @@
     "UISP_DEVICE_ASSOCIATED": "Équipement lié à UISP",
     "UISP_DEVICE_MISSING": "Équipement absent d'UISP",
     "UISP_DEVICE_ONBOARDED": "Équipement importé depuis UISP",
+    "UISP_FIREWALL_BULK_CANCELLED": "Règles de pare-feu programmées : demande annulée",
+    "UISP_FIREWALL_BULK_FAILED": "Règles de pare-feu programmées : CPE en échec, demande arrêtée",
+    "UISP_FIREWALL_BULK_SCHEDULED": "Règles de pare-feu de gestion programmées sur plusieurs CPE",
     "UISP_FIREWALL_CONFIGURED": "Règles de pare-feu de gestion appliquées via UISP",
     "UISP_FIREWALL_RESTORED": "Pare-feu de l'équipement restauré via UISP",
     "UISP_FIRMWARE_BULK_UPGRADE": "Mise à jour groupée du firmware UISP",
@@ -7751,6 +7754,56 @@
       "gdpr_32_1_b": "Confidentialité, intégrité, disponibilité et résilience",
       "gdpr_32_1_c": "Rétablissement de la disponibilité après un incident",
       "gdpr_32_1_d": "Vérification régulière de l'efficacité des mesures"
+    }
+  },
+  "uispFirewallBulk": {
+    "title": "Pare-feu de gestion airOS en masse",
+    "hint": "CPE airOS sans règles actives, à la connaissance de NSM. Choisissez lesquels protéger et quand : NSM applique les mêmes règles que la page de l'équipement, un CPE par minute, dans une fenêtre qui se répète chaque nuit. Le premier CPE part seul et les autres attendent qu'il soit de nouveau en ligne. Si l'un échoue ou n'est pas de nouveau en ligne sous 15 minutes, NSM arrête ceux qui n'ont pas commencé.",
+    "counts": "Sans règles : {{candidate}} · règles appliquées par NSM : {{applied}} · en cours : {{active}} · avec leurs propres règles : {{own_rules}} · bridge, non gérés : {{bridge}}",
+    "none": "Aucun CPE airOS sans règles actives.",
+    "all_one": "Sélectionner le CPE sans règles",
+    "all_other": "Sélectionner les {{count}} CPE sans règles",
+    "list_one": "Afficher {{count}} CPE",
+    "list_other": "Afficher {{count}} CPE",
+    "columns": {
+      "device": "Équipement",
+      "customer": "Client",
+      "mode": "Mode"
+    },
+    "modeUnknown": "pas encore lu",
+    "reboot_one": "{{count}} CPE va redémarrer : le client reste sans connexion 2 à 3 minutes.",
+    "reboot_other": "{{count}} CPE vont redémarrer, un à la fois : chaque client reste sans connexion 2 à 3 minutes.",
+    "start": "Début",
+    "hours": "Heures de la fenêtre de chaque nuit (de 1 à {{max}})",
+    "estimate_one": "Environ {{count}} nuit, si tout va bien.",
+    "estimate_other": "Environ {{count}} nuits, si tout va bien.",
+    "confirm": "Pour confirmer, saisissez le nombre de CPE choisis : {{count}}",
+    "schedule_one": "Programmer {{count}} CPE",
+    "schedule_other": "Programmer {{count}} CPE",
+    "queued_one": "{{count}} CPE programmé.",
+    "queued_other": "{{count}} CPE programmés.",
+    "skipped_one": "{{count}} ignoré car il n'est plus sans règles.",
+    "skipped_other": "{{count}} ignorés car ils ne sont plus sans règles.",
+    "cancel": "Annuler ceux non commencés",
+    "problems_one": "{{count}} CPE à vérifier",
+    "problems_other": "{{count}} CPE à vérifier",
+    "batch": {
+      "start": "Début",
+      "window": "Fenêtre",
+      "by": "Programmé par",
+      "progress": "Avancement",
+      "actions": "Actions",
+      "hours_one": "{{count}} heure",
+      "hours_other": "{{count}} heures"
+    },
+    "status": {
+      "scheduled": "Programmé",
+      "verifying": "Redémarrage",
+      "done": "Terminé",
+      "skipped": "Ignoré",
+      "failed": "Échec",
+      "stopped": "Arrêté",
+      "cancelled": "Annulé"
     }
   }
 }

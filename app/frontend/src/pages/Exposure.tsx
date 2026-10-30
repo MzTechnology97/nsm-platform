@@ -9,6 +9,7 @@ import { formatRelative } from "../lib/format";
 import { SEVERITY_TONE } from "./Vulnerabilities";
 import { Loading } from "../app/States";
 import { Pager } from "../app/Pager";
+import { UispFirewallBulkPanel } from "../app/UispFirewallBulk";
 import { UpnpFleetPanel } from "../app/UpnpPanel";
 import { pageParams, usePaging } from "../lib/paging";
 
@@ -76,6 +77,7 @@ export function Exposure() {
       ) : (
         <div className="ui-empty">{view === "exposed" ? t("exposure.allGood") : t("exposure.empty")}</div>
       )}
+      <UispFirewallBulkPanel customer={search.customer} />
       <UpnpFleetPanel customer={search.customer} />
     </section>
   );

@@ -5731,6 +5731,9 @@
     "UISP_DEVICE_ASSOCIATED": "Apparato collegato a UISP",
     "UISP_DEVICE_MISSING": "Apparato non più presente in UISP",
     "UISP_DEVICE_ONBOARDED": "Apparato importato da UISP",
+    "UISP_FIREWALL_BULK_CANCELLED": "Regole firewall programmate: richiesta annullata",
+    "UISP_FIREWALL_BULK_FAILED": "Regole firewall programmate: CPE non riuscita, richiesta fermata",
+    "UISP_FIREWALL_BULK_SCHEDULED": "Regole firewall di gestione programmate su più CPE",
     "UISP_FIREWALL_CONFIGURED": "Regole firewall di gestione applicate tramite UISP",
     "UISP_FIREWALL_RESTORED": "Firewall del dispositivo ripristinato tramite UISP",
     "UISP_FIRMWARE_BULK_UPGRADE": "Aggiornamento firmware UISP in blocco",
@@ -7751,6 +7754,56 @@
       "gdpr_32_1_b": "Riservatezza, integrità, disponibilità e resilienza",
       "gdpr_32_1_c": "Ripristino della disponibilità dopo un incidente",
       "gdpr_32_1_d": "Verifica regolare dell'efficacia delle misure"
+    }
+  },
+  "uispFirewallBulk": {
+    "title": "Firewall di gestione airOS in massa",
+    "hint": "CPE airOS senza regole attive, per quanto risulta a NSM. Scegli quali proteggere e quando: NSM applica le stesse regole della pagina del dispositivo, una CPE al minuto, dentro la finestra che si ripete ogni notte. La prima CPE va da sola e le altre aspettano che torni online. Se una non riesce o non torna online entro 15 minuti, NSM ferma quelle non ancora iniziate.",
+    "counts": "Senza regole: {{candidate}} · con regole applicate da NSM: {{applied}} · in corso: {{active}} · con regole proprie: {{own_rules}} · bridge, non gestite: {{bridge}}",
+    "none": "Nessuna CPE airOS senza regole attive.",
+    "all_one": "Seleziona la CPE senza regole",
+    "all_other": "Seleziona tutte le {{count}} CPE senza regole",
+    "list_one": "Mostra {{count}} CPE",
+    "list_other": "Mostra {{count}} CPE",
+    "columns": {
+      "device": "Dispositivo",
+      "customer": "Cliente",
+      "mode": "Modalità"
+    },
+    "modeUnknown": "non ancora letta",
+    "reboot_one": "{{count}} CPE si riavvierà: il cliente resta senza connessione per 2–3 minuti.",
+    "reboot_other": "{{count}} CPE si riavvieranno, una alla volta: ogni cliente resta senza connessione per 2–3 minuti.",
+    "start": "Inizio",
+    "hours": "Ore della finestra di ogni notte (da 1 a {{max}})",
+    "estimate_one": "Serve circa {{count}} notte, se tutto va bene.",
+    "estimate_other": "Servono circa {{count}} notti, se tutto va bene.",
+    "confirm": "Per confermare scrivi il numero di CPE scelte: {{count}}",
+    "schedule_one": "Programma {{count}} CPE",
+    "schedule_other": "Programma {{count}} CPE",
+    "queued_one": "{{count}} CPE programmata.",
+    "queued_other": "{{count}} CPE programmate.",
+    "skipped_one": "{{count}} saltata perché non è più senza regole.",
+    "skipped_other": "{{count}} saltate perché non sono più senza regole.",
+    "cancel": "Annulla quelle non iniziate",
+    "problems_one": "{{count}} CPE da controllare",
+    "problems_other": "{{count}} CPE da controllare",
+    "batch": {
+      "start": "Inizio",
+      "window": "Finestra",
+      "by": "Programmata da",
+      "progress": "Avanzamento",
+      "actions": "Azioni",
+      "hours_one": "{{count}} ora",
+      "hours_other": "{{count}} ore"
+    },
+    "status": {
+      "scheduled": "In programma",
+      "verifying": "In riavvio",
+      "done": "Completata",
+      "skipped": "Saltata",
+      "failed": "Non riuscita",
+      "stopped": "Fermata",
+      "cancelled": "Annullata"
     }
   }
 }

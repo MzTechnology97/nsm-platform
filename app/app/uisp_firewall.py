@@ -23,7 +23,8 @@ DMZ (``iptables.sys.dmz.<n>``) when the port is not in its exceptions (``except.
 reported as not protected.
 
 Like the syslog (``uisp_syslog``): UISP takes a fresh backup (the restore point), NSM edits ``system.cfg``, uploads
-and applies it — the CPE reboots — only when an operator asks from the device page and types the device name.
+and applies it — the CPE reboots — only when an operator asks from the device page and types the device name, or
+schedules many CPEs (``uisp_firewall_bulk``).
 Bridge-mode CPEs (ebtables) are not handled yet.
 """
 from __future__ import annotations
@@ -305,7 +306,7 @@ def _system_cfg(data: bytes) -> str:
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:*") as tar:
         member = next((m for m in tar.getmembers() if m.name.lstrip("./") == "system.cfg"), None)
         if member is None:
-            raise UispFirewallError("backup", "Il backup UISP non contiene system.cfg: dispositivo non airOS.")
+            raise UispFirewallError("not_airos", "Il backup UISP non contiene system.cfg: dispositivo non airOS.")
         return tar.extractfile(member).read().decode("utf-8")
 
 
@@ -411,8 +412,8 @@ def upload_and_apply(connection, device: Device, data: bytes, filename: str) -> 
     return uploaded["id"]
 
 
-def configure(db, user, device: Device, confirmation: str, services=DEFAULT_SERVICES) -> dict:
-    if (confirmation or "").strip() != base.device_name(device):
+def configure(db, user, device: Device, confirmation: str, services=DEFAULT_SERVICES, bulk: bool = False) -> dict:
+    if not bulk and (confirmation or "").strip() != base.device_name(device):
         raise UispFirewallError("confirmation", f"Per confermare scrivi esattamente il nome del dispositivo: {base.device_name(device)}")
     networks = _networks(db)
     connection = base._connection(db, device)
@@ -420,6 +421,8 @@ def configure(db, user, device: Device, confirmation: str, services=DEFAULT_SERV
     planned = plan(_system_cfg(original), networks, services)
     if planned["blocker"]:
         raise UispFirewallError("blocked", planned["blocker"])
+    if bulk and (planned["up_to_date"] or not planned["add"]):
+        raise UispFirewallError("up_to_date", "Nessuna regola da aggiungere: la CPE è già protetta.")
     uploaded = {"id": upload_and_apply(connection, device, _repack(original, networks, services), "nsm-firewall.tar.gz")}
     value = {"status": "applied", "applied_at": utcnow().isoformat(), "by": user.username if user else None, "networks": networks, "lan": planned["lan"],
              "services": list(services), "not_protected": planned["not_protected"],
