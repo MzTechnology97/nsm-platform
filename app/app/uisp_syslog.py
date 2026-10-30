@@ -5,18 +5,20 @@ UISP 3.x reads an airOS device's services (``GET /devices/{id}/services``) but c
 
 1. UISP takes a fresh backup of the device (``POST /devices/{id}/backups``): it is the restore point;
 2. NSM changes only ``syslog.remote.status/ip/port`` in its ``system.cfg`` (and, in *key* mode, appends the NSM key to
-   ``resolv.host.1.name``, the airOS hostname that appears in every log line);
+   ``resolv.host.1.name``, the airOS hostname);
 3. the changed file is uploaded as a new backup (``PUT /devices/{id}/backups``) and applied (``.../{backupId}/apply``):
    the CPE reboots and is back in 2–3 minutes (checked on a LiteBeam 5AC, airOS 8.7.15).
 
 Applying a backup rewrites the whole configuration and reboots the CPE, so it runs only when an operator asks for it
 from the device page and types the device name; never from the worker. *Ripristina* applies the restore point.
 
-How NSM recognises the lines (per device, ``mode``):
-- ``key`` (default, recommended): ``NSM-<key>`` in the hostname, like every other device;
-- ``customer_name``: the hostname is the NSM customer's name (words in any order) — accepted only when exactly one
-  Ubiquiti device of NSM uses this mode with that name;
-- ``address``: the device's address as UISP reports it — accepted only when no other device uses it.
+How NSM recognises the lines (per device, ``mode``). airOS 8.7.4 sends remote lines without any hostname (seen on
+production, 2026-10-30), so in every mode the receiver also accepts the device's address as UISP reports it, when no
+other device uses it (``syslog_identity.build_index``); key and name only help a firmware that does send the hostname:
+- ``address`` (default, recommended): the address alone;
+- ``key``: also ``NSM-<key>`` in the hostname, like every other device;
+- ``customer_name``: also the hostname as the NSM customer's name (words in any order) — accepted only when exactly one
+  Ubiquiti device of NSM uses this mode with that name.
 """
 from __future__ import annotations
 
@@ -40,7 +42,7 @@ from app.ui_api import require_csrf, ui_user
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 KEY = "uisp_syslog"
 MODES = ("key", "customer_name", "address")
-DEFAULT_MODE = "key"
+DEFAULT_MODE = "address"
 # airOS has no remote-syslog level (system.cfg: syslog.remote.status/ip/port only) and sends everything: the receiver keeps
 # the lines at this severity or worse (logins are still recorded for the Accessi page).
 LEVELS = {"error": 3, "warning": 4, "notice": 5, "info": 6, "debug": 7}
