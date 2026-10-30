@@ -577,10 +577,10 @@ Validation pending: periodic sync against a real UISP instance (the consumed end
 
 It runs only from the device *Syslog* tab, with the device name typed as confirmation (`devices.write`), never from the worker. *Ripristina configurazione precedente* applies the restore point. Devices whose services UISP does not expose (404) keep the manual guide.
 
-Identification per device:
-- `key`, the default: the NSM key in the hostname;
-- `customer_name`: the UISP hostname must equal the NSM customer's name, words in any order. The name is saved on the device (`match_name`) because the receiver's database account cannot read customers. A line is accepted only when exactly one device uses that name, and only among the first 160 characters of the line;
-- `address`: the management IP from UISP, accepted only when no other device uses it.
+Identification per device. airOS 8.7.4 sends remote lines without a hostname (seen on production, Core 0.49.326), so in every mode the receiver also accepts the management IP from UISP, when no other device uses it. A line sent right after the CPE's address changed is discarded until UISP reports the new one. Key and name only help a firmware that does send the hostname:
+- `address`, the default: the address alone;
+- `key`: also the NSM key in the hostname;
+- `customer_name`: also the UISP hostname equal to the NSM customer's name, words in any order. The name is saved on the device (`match_name`) because the receiver's database account cannot read customers. A line is accepted only when exactly one device uses that name, and only among the first 160 characters of the line.
 
 Minimum level: airOS has no remote-syslog level, so it sends everything. The receiver keeps only that device's chosen level or worse (`syslog_identity.Index.min_severity`, default warning, Core 0.49.276). auth/authpriv lines and recognised logins are always kept for *Accessi*. The level is changed from the panel without reapplying the configuration (`POST …/syslog/uisp/level`). Audit `UISP_SYSLOG_CONFIGURED`, `UISP_SYSLOG_RESTORED`, `UISP_SYSLOG_LEVEL_CHANGED`.
 

@@ -6699,11 +6699,11 @@
     "modes": {
       "key": {
         "label": "Chiave NSM nel nome del dispositivo",
-        "help": "UISP aggiunge NSM-… al nome (hostname) del CPE: funziona anche se cambia IP o condivide il NAT con altri."
+        "help": "UISP aggiunge NSM-… al nome (hostname) del CPE. airOS non invia il nome nei log remoti, quindi NSM li riconosce dall'IP del CPE come lo vede UISP."
       },
       "customer_name": {
         "label": "Nome del CPE uguale al cliente NSM",
-        "help": "Il nome del CPE in UISP deve essere quello del cliente ({{customer}}), in qualsiasi ordine. Accettato solo se nessun altro dispositivo usa lo stesso nome."
+        "help": "Il nome del CPE in UISP deve essere quello del cliente ({{customer}}), in qualsiasi ordine. Accettato solo se nessun altro dispositivo usa lo stesso nome. airOS non invia il nome nei log remoti, quindi NSM li riconosce dall'IP del CPE come lo vede UISP."
       },
       "address": {
         "label": "Indirizzo del dispositivo",
