@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.331 — 2026-10-30
+
+UniFi Network: classic self-hosted controllers
+- *Integrazioni → UniFi Network* now also works with the classic self-hosted controller on port 8443, which has no API key. Choose *Controller classico (porta 8443): utente e password* and enter a dedicated local account, not a Ubiquiti account and without two-factor authentication.
+- All the sites the account can see are read, and you can choose which ones after the connection test. Devices, firmware, state and statistics appear as with the API key.
+- NSM sends nothing to the controller other than login and logout. The password is encrypted, never shown again, and must be entered again if you change the address.
+- The API key help no longer sends you only to *Control Plane*: the Integrations entry changes place with the UniFi version.
+- A controller with a self-signed certificate now gets a clear message saying to turn off TLS verification.
 ## 0.49.330 — 2026-10-30
 
 Esposizione page: tabs, search and service filter
