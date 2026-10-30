@@ -51,6 +51,7 @@ def main():
     uisp_syslog.SLEEP = lambda seconds: None
     configs = {key: CFG for key in ("a", "b", "c", "d", "e", "f", "off", "ownrules", "done", "knownbridge")}
     configs["bridge"] = CFG.replace("netmode=router", "netmode=bridge")
+    configs["ap"] = CFG
     with SessionLocal() as db:
         db.execute(delete(ConnectorIntegration).where(ConnectorIntegration.provider.in_(["uisp", management_access.SETTINGS_PROVIDER])))
         db.add(ConnectorIntegration(provider="uisp", name="UISP", base_url="https://uisp.example.test", verify_tls=True, is_enabled=True,
@@ -67,6 +68,7 @@ def main():
         devices["ownrules"].inventory_data = {fw.READ_KEY: {"netmode": "router", "enabled": True, "rules": [{"protocol": 6, "src": None, "dport": 22, "target": "DROP"}]}}
         devices["done"].inventory_data = {fw.KEY: {"status": "applied"}}
         devices["knownbridge"].inventory_data = {fw.READ_KEY: {"netmode": "bridge", "enabled": False, "rules": []}}
+        devices["ap"].device_type = "wireless_ap"
         db.add_all(list(devices.values()))
         db.add(User(username=f"ci-bk-{s}", password_hash=hash_password(PASSWORD), role="admin", is_active=True))
         db.commit()
@@ -96,7 +98,7 @@ def main():
     page = client.get(URL).json()
     names = {row["name"] for row in page["candidates"]}
     assert {f"bk-{k}-{s}" for k in ("a", "b", "c", "d", "e", "f", "off", "bridge")} <= names
-    assert not {f"bk-{k}-{s}" for k in ("ownrules", "done", "knownbridge")} & names
+    assert not {f"bk-{k}-{s}" for k in ("ownrules", "done", "knownbridge", "ap")} & names
     assert page["counts"]["own_rules"] >= 1 and page["counts"]["applied"] >= 1 and page["counts"]["bridge"] >= 1
 
     now = utcnow()
@@ -193,6 +195,15 @@ def main():
     assert status("f") == "scheduled"
     assert client.post(f"{URL}/cancel", json={"batch": fourth["batch"]}).json()["cancelled"] == 1 and status("f") == "cancelled"
     assert bulk.tick(start + timedelta(days=1))["started"] == 0
+
+    # An access point is never scheduled, and one already scheduled is skipped untouched at its turn.
+    assert [r["reason"] for r in request(["ap"], start).json()["skipped"]] == ["not_cpe"]
+    with SessionLocal() as db:
+        ap = db.get(Device, ids["ap"])
+        ap.inventory_data = {bulk.KEY: {"status": "scheduled", "batch": "older", "at": start.isoformat(), "hours": 4, "services": ["ssh"]}}
+        db.commit()
+    assert bulk.tick(start + timedelta(days=2))["skipped"] == 1 and status("ap") == "skipped"
+    assert fake.devices[ext("ap")]["applied"] == [] and len(fake.devices[ext("ap")]["backups"]) == 1, "nothing asked of the access point"
 
     # Single-device page unchanged: the typed name is still required there.
     assert client.post(f"/api/ui/v1/devices/{ids['f']}/uisp/firewall", json={"confirmation": "wrong"}).json()["detail"]["code"] == "confirmation"
