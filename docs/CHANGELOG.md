@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.323 — 2026-10-30
+
+Documentation
+- **Roadmap: counters on the other sidebar items (GUI-COUNTERS).** Today only Apparati, Monitoring, Firmware, Vulnerabilità and Action Center show one.
+- **Roadmap: closing open Action Center issues by hand (ISSUE-CLOSE).** Today an issue can only be taken in charge; it closes when the worker sees the condition end.
 ## 0.49.322 — 2026-10-30
 
 Fixes
