@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.322 — 2026-10-30
+
+Fixes
+- **Older TP-Link firmware (Archer VR1210v).** The device *ACS* tab now reports the unencrypted remote HTTP page of this firmware (`X_TP_AppCfg.HttpCfg.HttpRemoteEnabled`), which the remote access settings did not show, with a warning when it is on. Technicians can switch it off or on; each change is audited.
+- **Firmware updates of these CPEs were not detected.** NSM read `2.0.0 0.9 v6041.0 Build 221027` as release 2.0.0, so it considered the CPE newer than the catalog and never offered the update. The platform number in first position is now skipped.
+- **CPEs that report the generic product class `Device`** now use their model name for firmware files, firmware campaigns and the wrong-model check, so different models are not treated as one. Files already stored with the generic class are still accepted.
 ## 0.49.321 — 2026-10-30
 
 DNS blacklists: Spamhaus DQS key, NiX Spam removed, checkboxes aligned
