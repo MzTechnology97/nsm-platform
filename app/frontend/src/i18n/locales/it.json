@@ -141,8 +141,7 @@
       "progress": "In corso: {{done}} di {{total}}…",
       "finished": "Completato: {{ok}} di {{total}} riusciti.",
       "moreFailures": "e altri {{count}}"
-    },
-    "share": "{{percent}}% degli apparati"
+    }
   },
   "device": {
     "notFound": "Apparato non trovato o non visibile con i tuoi permessi.",
