@@ -7734,8 +7734,6 @@
     "removal": "página de eliminación",
     "unassigned": "Tu dirección, no asignada",
     "unknown": "Ningún equipo conocido",
-    "more_one": "{{count}} dirección más no mostrada: usa los filtros.",
-    "more_other": "{{count}} direcciones más no mostradas: usa los filtros.",
     "empty": "Ninguna dirección denunciada por las fuentes activas.",
     "emptyFiltered": "Ninguna dirección con estos filtros.",
     "prefixesTitle": "Prefijos en listas de amenazas",

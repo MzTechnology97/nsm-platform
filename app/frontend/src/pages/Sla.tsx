@@ -9,8 +9,10 @@ import { type MaintenanceWindowRow, type SlaRow, type SlaVerdict, slaExportUrl, 
 import { BrandIcon } from "../app/BrandIcon";
 import { useListSearch } from "../app/CustomerScope";
 import { InfoTip } from "../app/InfoTip";
+import { Pager } from "../app/Pager";
 import { EmptyState, Loading } from "../app/States";
 import { formatDateTime, fromLocalInput } from "../lib/format";
+import { usePaging } from "../lib/paging";
 
 const VERDICT_TONE: Record<SlaVerdict, string> = { met: "online", missed: "offline", not_measured: "warning", no_target: "unknown" };
 
@@ -40,6 +42,7 @@ export function Sla() {
     : all;
   const setMonth = (month: string) => update({ month: month || undefined });
   const toggle = (customer: string) => update({ customer: chosen.customer === customer ? undefined : customer });
+  const paging = usePaging(search.month ?? "");
   return (
     <section className={scope ? "ui-customer-list" : "ui-page"}>
       <header className="ui-page-header ui-page-header-row">
@@ -76,6 +79,7 @@ export function Sla() {
             ))}
           </div>
           {data.rows.length ? (
+            <>
             <div className="ui-data-wrap">
               <table className="ui-data-table ui-sla-table">
                 <thead>
@@ -89,13 +93,15 @@ export function Sla() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.map((row) => (
+                  {data.rows.slice(paging.offset, paging.offset + paging.size).map((row) => (
                     <SlaLine key={row.customer.id} row={row} canEdit={data.can_edit} open={Boolean(scope) || search.customer === row.customer.id}
                       onToggle={() => toggle(row.customer.id)} month={search.month} scoped={Boolean(scope)} />
                   ))}
                 </tbody>
               </table>
             </div>
+            <Pager total={data.rows.length} paging={paging} />
+            </>
           ) : (
             <EmptyState title={t("sla.empty")} />
           )}
