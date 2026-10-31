@@ -27,12 +27,14 @@ PASSWORD = "CI-UISP-Firewall-Bulk-2026"
 
 
 class Fleet(FakeUisp):
-    """FakeUisp that also reports the device status and can fail a backup."""
+    """FakeUisp that also reports the device status, can fail a backup and can be slow to answer an apply."""
 
     def __init__(self):
         super().__init__()
         self.offline = set()
         self.broken = set()
+        self.slow = set()
+        self.apply_timeouts = []
 
     def __call__(self, req: httpx.Request):
         path = req.url.path.removeprefix("/nms/api/v2.1")
@@ -41,7 +43,12 @@ class Fleet(FakeUisp):
             return httpx.Response(500, json={"statusCode": 500, "message": "boom"})
         if req.method == "GET" and path == f"/devices/{ext}":
             return httpx.Response(200, json={"overview": {"status": "disconnected" if ext in self.offline else "active"}})
-        return super().__call__(req)
+        if req.method == "POST" and path.endswith("/apply"):
+            self.apply_timeouts.append(req.extensions["timeout"]["read"])
+        response = super().__call__(req)
+        if ext in self.slow and path.endswith("/apply"):
+            raise httpx.ReadTimeout("UISP still applying", request=req)  # applied, but the reply is late
+        return response
 
 
 def main():
@@ -195,6 +202,17 @@ def main():
     assert status("f") == "scheduled"
     assert client.post(f"{URL}/cancel", json={"batch": fourth["batch"]}).json()["cancelled"] == 1 and status("f") == "cancelled"
     assert bulk.tick(start + timedelta(days=1))["started"] == 0
+
+    # UISP late to answer the apply (2026-10-31, timeout at 30 s while the CPE took the rules): not a failure, the CPE is checked.
+    fake.slow.add(ext("f"))
+    assert request(["f"], start).json()["queued"] == 1
+    stats = bulk.tick(start + timedelta(days=1, minutes=1))
+    assert stats["started"] == 1 and stats["failed"] == 0 and status("f") == "verifying", stats
+    with SessionLocal() as db:
+        assert db.get(Device, ids["f"]).inventory_data[fw.KEY]["backup_before"], "the restore point is kept"
+    assert bulk.tick(start + timedelta(days=1, minutes=5))["done"] == 1 and status("f") == "done"
+    fake.slow.discard(ext("f"))
+    assert set(fake.apply_timeouts) == {uisp_syslog.APPLY_TIMEOUT}, fake.apply_timeouts
 
     # An access point is never scheduled, and one already scheduled is skipped untouched at its turn.
     assert [r["reason"] for r in request(["ap"], start).json()["skipped"]] == ["not_cpe"]

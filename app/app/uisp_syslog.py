@@ -28,6 +28,7 @@ import tarfile
 import time
 import uuid
 
+import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
 from app import main as core
@@ -51,6 +52,7 @@ PORT = 514
 BACKUP_WAIT_SECONDS = 90
 HOSTNAME_MAX = 63
 SLEEP = time.sleep  # tests replace it
+APPLY_TIMEOUT = 120.0  # UISP answers an apply only once the CPE has taken it: 30 s was not always enough
 _KEY_SUFFIX = re.compile(r"\s*" + re.escape(identity.KEY_PREFIX) + r"[0-9a-f]{16}\s*")
 
 
@@ -124,6 +126,16 @@ def _call(connection, method, path, what, **kwargs):
     except ops.UispOperationError as exc:
         raise UispSyslogError("uisp", str(exc)) from None
     return response
+
+
+def apply_backup(connection, ext: str, backup_id: str, what: str) -> None:
+    """Apply a UISP backup (the CPE reboots). A reply that does not come in time is not a failure: UISP has the request and
+    goes on (2026-10-31: a bulk apply timed out at 30 s, the CPE rebooted with the new rules), the caller checks the CPE."""
+    try:
+        _call(connection, "POST", f"/devices/{ext}/backups/{backup_id}/apply", what, timeout=APPLY_TIMEOUT)
+    except UispSyslogError as exc:
+        if not isinstance(exc.__cause__, httpx.ReadTimeout):
+            raise
 
 
 def _connection(db, device: Device):
@@ -210,7 +222,7 @@ def configure(db, user, device: Device, server: str, mode: str, confirmation: st
                      files={"file": ("nsm-syslog.tar.gz", changed, "application/octet-stream")}).json() or {}
     if not uploaded.get("id"):
         raise UispSyslogError("upload", "UISP non ha accettato la configurazione modificata.")
-    _call(connection, "POST", f"/devices/{ext}/backups/{uploaded['id']}/apply", "l'applicazione della configurazione")
+    apply_backup(connection, ext, uploaded["id"], "l'applicazione della configurazione")
     now = utcnow()
     value = {"mode": mode, "server": server, "port": PORT, "level": level, "applied_at": now.isoformat(), "by": user.username if user else None,
              "match_name": device.customer.name if mode == "customer_name" and device.customer else None,
@@ -232,7 +244,7 @@ def restore(db, user, device: Device, confirmation: str) -> dict:
     if (confirmation or "").strip() != device_name(device):
         raise UispSyslogError("confirmation", f"Per confermare scrivi esattamente il nome del dispositivo: {device_name(device)}")
     connection = _connection(db, device)
-    _call(connection, "POST", f"/devices/{device.external_device_id}/backups/{value['backup_before']}/apply", "il ripristino della configurazione")
+    apply_backup(connection, device.external_device_id, value["backup_before"], "il ripristino della configurazione")
     data = dict(device.inventory_data or {})
     data[KEY] = {**value, "status": "restored", "restored_at": utcnow().isoformat()}
     device.inventory_data = data
