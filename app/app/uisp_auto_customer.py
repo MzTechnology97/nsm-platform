@@ -42,8 +42,10 @@ router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 RUN_INTERVAL_SECONDS = 1800
 SITES_TIMEOUT_SECONDS = 90.0
 MAX_PER_RUN = 300
+ENDPOINTS_CACHE_SECONDS = 300
 TRANSPORT = None  # tests swap in an httpx.MockTransport
 _last_run = 0.0
+_endpoints_cache = None  # (read at, connection, endpoints) of the last read for the page
 
 
 def norm(value) -> str:
@@ -89,6 +91,17 @@ def fetch_endpoints(connection) -> list[dict]:
         out.append({"id": str(site["id"]), "name": str(ident.get("name") or "")[:200], "client": str(client.get("name") or "")[:200] or None,
                     "parent": str((ident.get("parent") or {}).get("name") or "")[:200] or None})
     return out
+
+
+def cached_endpoints(connection) -> list[dict]:
+    """The site list takes UISP about 8 seconds: the page and its buttons read it once every few minutes; the worker always reads it."""
+    global _endpoints_cache
+    key = (connection.base_url, connection.secret_encrypted)
+    if _endpoints_cache and _endpoints_cache[1] == key and time.monotonic() - _endpoints_cache[0] < ENDPOINTS_CACHE_SECONDS:
+        return _endpoints_cache[2]
+    endpoints = fetch_endpoints(connection)
+    _endpoints_cache = (time.monotonic(), key, endpoints)
+    return endpoints
 
 
 def decisions(connection) -> dict:
@@ -200,8 +213,7 @@ def run(now: datetime | None = None, force: bool = False) -> dict:
 
 def _payload(db, connection, rows, can_write: bool) -> dict:
     device_counts = defaultdict(int)
-    for device_id, source_site in db.execute(select(Device.id, Device.inventory_data).where(Device.vendor == "ubiquiti")):
-        site_id = str((((source_site or {}).get("uisp") or {}).get("site") or {}).get("id") or "")
+    for site_id in db.scalars(select(Device.inventory_data["uisp"]["site"]["id"].as_string()).where(Device.vendor == "ubiquiti")):
         if site_id:
             device_counts[site_id] += 1
     counts = {state: sum(1 for r in rows if r["state"] == state) for state in ("matched", "linked", "unmatched", "ignored")}
@@ -221,7 +233,7 @@ def uisp_site_customers(request: Request):
         if connection is None:
             raise HTTPException(409, {"code": "not_configured", "message": "UISP non è configurato o è disattivato."})
         try:
-            rows = resolve(fetch_endpoints(connection), customers, decisions(connection))
+            rows = resolve(cached_endpoints(connection), customers, decisions(connection))
         except uisp.UispConnectorError as exc:
             raise HTTPException(502, {"code": "uisp", "message": str(exc)}) from None
         return _payload(db, connection, rows, core.has_permission(user, "devices.write"))
@@ -258,7 +270,7 @@ def uisp_site_customers_save(request: Request, body: dict = Body(default={})):
         stored["site_customers"] = choices
         connection.settings = stored
         try:
-            rows = resolve(fetch_endpoints(connection), customers, choices)
+            rows = resolve(cached_endpoints(connection), customers, choices)
             stats = import_devices(db, connection, rows, actor=user) if auto_enabled(connection) and (body.get("customer_id") or body.get("auto")) else {}
         except uisp.UispConnectorError as exc:
             db.commit()
