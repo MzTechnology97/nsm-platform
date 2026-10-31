@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.342 — 2026-10-31
+
+UISP configuration apply: a late answer is not a failure
+
+### Fixed
+- Applying a UISP backup (scheduled airOS firewall, syslog, UPnP off, restore) waited 30 seconds for UISP's answer. UISP answers only once the CPE has taken the configuration, which can take longer: on the first production night a CPE timed out, so NSM stopped 574 scheduled CPEs. That CPE had rebooted with the rules. NSM now waits up to 2 minutes. A late answer is not a failure: the CPE is checked after the reboot like the others, and the restore point is kept.
 ## 0.49.341 — 2026-10-31
 
 Fixes

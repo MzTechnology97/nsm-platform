@@ -408,7 +408,7 @@ def upload_and_apply(connection, device: Device, data: bytes, filename: str) -> 
                           files={"file": (filename, data, "application/octet-stream")}).json() or {}
     if not uploaded.get("id"):
         raise UispFirewallError("upload", "UISP non ha accettato la configurazione modificata.")
-    base._call(connection, "POST", f"/devices/{ext}/backups/{uploaded['id']}/apply", "l'applicazione della configurazione")
+    base.apply_backup(connection, ext, uploaded["id"], "l'applicazione della configurazione")
     return uploaded["id"]
 
 
@@ -441,7 +441,7 @@ def restore(db, user, device: Device, confirmation: str) -> dict:
     if (confirmation or "").strip() != base.device_name(device):
         raise UispFirewallError("confirmation", f"Per confermare scrivi esattamente il nome del dispositivo: {base.device_name(device)}")
     connection = base._connection(db, device)
-    base._call(connection, "POST", f"/devices/{device.external_device_id}/backups/{value['backup_before']}/apply", "il ripristino della configurazione")
+    base.apply_backup(connection, device.external_device_id, value["backup_before"], "il ripristino della configurazione")
     value.update({"status": "restored", "restored_at": utcnow().isoformat()})
     device.inventory_data = {**(device.inventory_data or {}), KEY: value}
     core.add_event(db, "UISP_FIREWALL_RESTORED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",

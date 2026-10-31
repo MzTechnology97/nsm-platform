@@ -923,6 +923,7 @@ Each CPE gets the same change as the device page (`uisp_firewall.configure`): a 
 - one CPE per worker run (about one per minute), at most 5 still coming back. 240 CPEs fit in a 4-hour window;
 - the first CPE of a request goes alone; the others wait until it is online in UISP again;
 - a failed apply, or a CPE not online in UISP again within 15 minutes, stops the CPEs the request has not started;
+- UISP answers an apply only once the CPE has taken it: NSM waits up to 2 minutes, and a late answer is not a failure (the CPE is checked like the others). Core 0.49.342, after a production request stopped at 30 seconds on a CPE that had taken the rules;
 - a CPE offline in UISP, in bridge mode, not airOS or with nothing to add is skipped without a reboot and the request goes on. A skipped, stopped or cancelled CPE returns to the list.
 
 The request can be cancelled for the CPEs not started. A request needs a saved management list with at least one IPv4 network, because airOS rules are IPv4 only. Restoring stays per device, from the device page. State in `inventory_data.uisp_firewall_schedule`; audited as `UISP_FIREWALL_BULK_SCHEDULED`, `UISP_FIREWALL_BULK_FAILED`, `UISP_FIREWALL_BULK_CANCELLED` and, per CPE, `UISP_FIREWALL_CONFIGURED`.
