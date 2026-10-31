@@ -7811,6 +7811,8 @@
     "status": {
       "scheduled": "In programma",
       "verifying": "In riavvio",
+      "waiting": "Offline, in attesa",
+      "powered_off": "Spenta dopo le regole, in attesa",
       "done": "Completata",
       "skipped": "Saltata",
       "failed": "Non riuscita",

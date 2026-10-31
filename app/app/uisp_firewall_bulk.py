@@ -10,9 +10,14 @@ Every CPE reboots, so the pace protects the fleet:
 - one CPE per worker run (about one per minute), at most ``MAX_VERIFYING`` still coming back;
 - the first CPE of a request goes alone: the others wait until it is back online in UISP;
 - a CPE not back online within ``VERIFY_TIMEOUT``, or a failed apply, stops the CPEs still scheduled by that request;
+- unless its access point no longer sees it (operator request 2026-10-31): switched off by the customer, not cut off by the
+  rules, which only filter management traffic. It waits as ``powered_off`` and is done when back, or fails after
+  ``OFFLINE_GIVE_UP``, without stopping the others; with ``MAX_POWERED_OFF`` already waiting the request stops all the same.
+  With no access point in UISP, or the access point itself down, NSM cannot tell and stops as before;
 - only ``wireless_cpe`` devices: rebooting an access point would take its customers down with it;
-- a CPE offline in UISP, in bridge mode, not airOS or with nothing to add is skipped without a reboot, and the request
-  goes on. A skipped, stopped or cancelled CPE can be scheduled again.
+- a CPE offline in UISP at its turn waits (``waiting``) and is tried again every ``OFFLINE_RETRY`` in the request's
+  windows, skipped after ``OFFLINE_GIVE_UP``; in bridge mode, not airOS or with nothing to add it is skipped without a
+  reboot. The request goes on. A skipped, stopped or cancelled CPE can be scheduled again.
 
 The state is kept on the device (``inventory_data.uisp_firewall_schedule``), so no migration is needed.
 """
@@ -45,8 +50,11 @@ DEFAULT_WINDOW_HOURS = 4
 REBOOT_WAIT = timedelta(minutes=3)  # before this a CPE may still report online: it has not rebooted yet
 VERIFY_TIMEOUT = timedelta(minutes=15)
 MAX_VERIFYING = 5
-ACTIVE = ("scheduled", "verifying")
-PROBLEMS = ("failed", "stopped", "skipped")
+OFFLINE_RETRY = timedelta(minutes=30)
+OFFLINE_GIVE_UP = timedelta(days=7)
+MAX_POWERED_OFF = 2
+ACTIVE = ("scheduled", "waiting", "verifying", "powered_off")
+PROBLEMS = ("failed", "stopped", "skipped", "powered_off")
 SKIP_CODES = ("blocked", "not_airos", "up_to_date")
 RECENT = timedelta(days=14)
 
@@ -86,6 +94,41 @@ def classify(device: Device) -> str:
 def _online(db, device: Device) -> bool:
     row = base._call(base._connection(db, device), "GET", f"/devices/{device.external_device_id}", "la lettura dello stato").json() or {}
     return uisp._status((row.get("overview") or {}).get("status") or row.get("status")) == "online"
+
+
+def _linked(db, device: Device) -> bool | None:
+    """Whether the access point of the CPE still lists it among its stations; None when UISP cannot tell."""
+    connection = base._connection(db, device)
+    row = base._call(connection, "GET", f"/devices/{device.external_device_id}", "la lettura dello stato").json() or {}
+    ap = ((row.get("attributes") or {}).get("apDevice") or {}).get("id")
+    if not ap:
+        return None
+    ap_row = base._call(connection, "GET", f"/devices/{ap}", "la lettura dell'access point").json() or {}
+    if uisp._status((ap_row.get("overview") or {}).get("status") or ap_row.get("status")) != "online":
+        return None
+    stations = base._call(connection, "GET", f"/devices/airmaxes/{ap}/stations", "la lettura delle stazioni").json()
+    if not isinstance(stations, list):
+        return None
+    return any(isinstance(s, dict) and (s.get("deviceIdentification") or {}).get("id") == device.external_device_id for s in stations)
+
+
+def _wait(device: Device, value: dict, now, stats: dict) -> None:
+    """Offline at its turn: try again later, skipped once offline for ``OFFLINE_GIVE_UP``."""
+    since = value.get("offline_since") or now.isoformat()
+    if now - _parse(since) >= OFFLINE_GIVE_UP:
+        _save(device, status="skipped", error="La CPE è rimasta offline in UISP per 7 giorni.")
+        stats["skipped"] += 1
+        return
+    _save(device, status="waiting", offline_since=since, retry_at=(now + OFFLINE_RETRY).isoformat(),
+          error="La CPE non è online in UISP: NSM riprova ogni 30 minuti nella finestra.")
+    stats["waiting"] += 1
+
+
+def _gone(db, device: Device) -> bool:
+    try:
+        return not _online(db, device)
+    except InputError:
+        return False
 
 
 def queue(db, user, devices: list[Device], at_value, hours, services) -> dict:
@@ -128,7 +171,7 @@ def _rows(db) -> list[Device]:
 
 def cancel(db, user, batch: str) -> int:
     """Cancel what the request has not started yet; CPEs already rebooting finish their check. The caller commits."""
-    pending = [d for d in _rows(db) if schedule_of(d).get("batch") == batch and schedule_of(d).get("status") == "scheduled"]
+    pending = [d for d in _rows(db) if schedule_of(d).get("batch") == batch and schedule_of(d).get("status") in ("scheduled", "waiting")]
     for device in pending:
         _save(device, status="cancelled")
     if pending:
@@ -136,15 +179,15 @@ def cancel(db, user, batch: str) -> int:
     return len(pending)
 
 
-def _fail(db, device: Device, error: str, rows: list[Device]) -> int:
+def _fail(db, device: Device, error: str, rows: list[Device], stop: bool = True) -> int:
     """Mark one CPE failed and stop the ones its request has not started; how many were stopped."""
     value = schedule_of(device)
     _save(device, status="failed", error=error[:300], done_at=utcnow().isoformat())
     core.add_event(db, "UISP_FIREWALL_BULK_FAILED", customer_id=device.customer_id, device_id=device.id, source="worker", severity="warning", result="failure",
                    details={"batch": value.get("batch"), "error": error[:300]})
     stopped = 0
-    for other in rows:
-        if schedule_of(other).get("batch") == value.get("batch") and schedule_of(other).get("status") == "scheduled":
+    for other in rows if stop else ():
+        if schedule_of(other).get("batch") == value.get("batch") and schedule_of(other).get("status") in ("scheduled", "waiting"):
             _save(other, status="stopped", error=f"Fermato: {device.name} non è riuscita.")
             stopped += 1
     return stopped
@@ -153,7 +196,7 @@ def _fail(db, device: Device, error: str, rows: list[Device]) -> int:
 def _verify(db, rows: list[Device], now, stats: dict) -> None:
     for device in rows:
         value = schedule_of(device)
-        if value.get("status") != "verifying":
+        if value.get("status") not in ("verifying", "powered_off"):
             continue
         elapsed = now - _parse(value.get("applied_at"))
         if elapsed < REBOOT_WAIT:
@@ -163,10 +206,28 @@ def _verify(db, rows: list[Device], now, stats: dict) -> None:
         except InputError:
             online = False
         if online:
-            _save(device, status="done", done_at=now.isoformat())
+            _save(device, status="done", done_at=now.isoformat(), error=None)
             stats["done"] += 1
+        elif value["status"] == "powered_off":
+            if elapsed >= OFFLINE_GIVE_UP:
+                _fail(db, device, "Spenta dopo l'applicazione e non più tornata online in 7 giorni: controllala.", rows, stop=False)
+                stats["failed"] += 1
         elif elapsed >= VERIFY_TIMEOUT:
-            stats["stopped"] += _fail(db, device, "La CPE non è tornata online in UISP entro 15 minuti dall'applicazione.", rows)
+            try:
+                linked = _linked(db, device)
+            except InputError:
+                linked = None
+            off = sum(1 for d in rows if schedule_of(d).get("batch") == value.get("batch") and schedule_of(d).get("status") == "powered_off")
+            if linked is False and off < MAX_POWERED_OFF:
+                _save(device, status="powered_off", error="Il suo access point non la vede più: probabilmente spenta. NSM la conta fatta quando torna online.")
+                stats["powered_off"] += 1
+                continue
+            reason = "La CPE non è tornata online in UISP entro 15 minuti dall'applicazione."
+            if linked:
+                reason += " Il suo access point la vede ancora collegata."
+            elif linked is False:
+                reason += f" Già {off} CPE di questa richiesta risultano spente: fermo le altre per sicurezza."
+            stats["stopped"] += _fail(db, device, reason, rows)
             stats["failed"] += 1
     db.commit()
 
@@ -181,13 +242,12 @@ def _start(db, device: Device, rows: list[Device], now, stats: dict) -> bool:
         return False
     try:
         if not _online(db, device):
-            _save(device, status="skipped", error="La CPE non è online in UISP.")
-            stats["skipped"] += 1
+            _wait(device, value, now, stats)
             db.commit()
             return False
         user = db.get(User, uuid.UUID(value["user_id"])) if value.get("user_id") else None
         # Saved before ``configure``, which commits it with its own state: a crash after the apply still gets the check.
-        _save(device, status="verifying", applied_at=now.isoformat())
+        _save(device, status="verifying", applied_at=now.isoformat(), error=None)
         fw.configure(db, user, device, "", fw.parse_services(value.get("services") or fw.DEFAULT_SERVICES), bulk=True)
         stats["started"] += 1
     except (InputError, tarfile.TarError, ValueError) as exc:
@@ -196,6 +256,8 @@ def _start(db, device: Device, rows: list[Device], now, stats: dict) -> bool:
         if getattr(exc, "code", None) in SKIP_CODES:
             _save(device, status="skipped", error=str(exc)[:300])
             stats["skipped"] += 1
+        elif _gone(db, device):
+            _wait(device, value, now, stats)  # switched off in the meantime: what failed was reaching it
         else:
             stats["stopped"] += _fail(db, device, str(exc), rows)
             stats["failed"] += 1
@@ -206,7 +268,7 @@ def _start(db, device: Device, rows: list[Device], now, stats: dict) -> bool:
 def tick(now=None) -> dict:
     """Worker, every minute: check the CPEs coming back, then start the next one due."""
     now = now or utcnow()
-    stats = {"done": 0, "started": 0, "skipped": 0, "failed": 0, "stopped": 0}
+    stats = {"done": 0, "started": 0, "skipped": 0, "failed": 0, "stopped": 0, "waiting": 0, "powered_off": 0}
     with SessionLocal() as db:
         rows = _rows(db)
         if not any(schedule_of(d).get("status") in ACTIVE for d in rows):
@@ -216,7 +278,8 @@ def tick(now=None) -> dict:
         verifying = [v for v in current if v.get("status") == "verifying"]
         if len(verifying) >= MAX_VERIFYING:
             return stats
-        due = [d for d in rows if schedule_of(d).get("status") == "scheduled" and in_window(schedule_of(d), now)]
+        due = [d for d in rows if in_window(schedule_of(d), now) and (schedule_of(d).get("status") == "scheduled" or (
+            schedule_of(d).get("status") == "waiting" and _parse(schedule_of(d).get("retry_at")) <= now))]
         due.sort(key=lambda d: (schedule_of(d).get("at"), d.name))
         for device in due:
             batch = schedule_of(device).get("batch")
@@ -225,7 +288,6 @@ def tick(now=None) -> dict:
                 continue
             if _start(db, device, rows, now, stats):
                 break
-            # shortcut: an offline CPE is skipped once and not retried in this request, schedule it again if it matters.
     return stats
 
 
