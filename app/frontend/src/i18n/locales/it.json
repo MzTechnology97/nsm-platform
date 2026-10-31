@@ -2718,8 +2718,8 @@
     "templatesCurrent": "I modelli NSM sono aggiornati (installati il {{when}}). NSM li aggiorna da solo dopo ogni aggiornamento.",
     "templatesPending": "Questa versione di NSM ha modelli più recenti di quelli installati il {{when}}: NSM li installa entro 30 minuti, oppure premi Installa ora.",
     "templatesAuto": "Una volta installati, NSM tiene aggiornati questi modelli da solo dopo ogni aggiornamento.",
-    "guideIntro": "Su ogni router serve un solo passaggio manuale: accendere il CWMP e impostare l'ACS URL. Da lì NSP riconosce la CPE e la monitora in sola lettura, senza modificarne la configurazione.",
-    "readonlyTitle": "Cosa fa NSP e cosa non tocca",
+    "guideIntro": "Su ogni router serve un solo passaggio manuale: accendere il CWMP e impostare l'ACS URL. Da lì NSM riconosce la CPE e la monitora in sola lettura, senza modificarne la configurazione.",
+    "readonlyTitle": "Cosa fa NSM e cosa non tocca",
     "readonly": {
       "reads": "Legge: stato online/offline, ultimo contatto, modello, firmware, IP, CPU, memoria, traffico WAN, client Wi-Fi e linea DSL.",
       "actions": "Azioni disponibili: riavvio, verifica firmware, diagnostica.",

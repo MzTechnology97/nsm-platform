@@ -2718,8 +2718,8 @@
     "templatesCurrent": "Les modèles NSM sont à jour (installés le {{when}}). NSM les met à jour seul après chaque mise à jour.",
     "templatesPending": "Cette version de NSM a des modèles plus récents que ceux installés le {{when}} : NSM les installe sous 30 minutes, ou cliquez sur Installer.",
     "templatesAuto": "Une fois installés, NSM tient ces modèles à jour seul après chaque mise à jour.",
-    "guideIntro": "Chaque routeur demande une seule étape manuelle : activer le CWMP et saisir l'URL ACS. Ensuite NSP reconnaît le CPE et le surveille en lecture seule, sans modifier sa configuration.",
-    "readonlyTitle": "Ce que NSP fait et ne touche pas",
+    "guideIntro": "Chaque routeur demande une seule étape manuelle : activer le CWMP et saisir l'URL ACS. Ensuite NSM reconnaît le CPE et le surveille en lecture seule, sans modifier sa configuration.",
+    "readonlyTitle": "Ce que NSM fait et ne touche pas",
     "readonly": {
       "reads": "Lit : état en ligne/hors ligne, dernier contact, modèle, firmware, IP, CPU, mémoire, trafic WAN, clients Wi-Fi et ligne DSL.",
       "actions": "Actions disponibles : redémarrage, vérification du firmware, diagnostic.",

@@ -20,7 +20,7 @@ x-genieacs: &genieacs
 services:
   postgres:
     image: postgres:18.6-alpine
-    container_name: nsp-postgres
+    container_name: nsm-postgres
     restart: unless-stopped
     env_file:
       - ./secrets/bootstrap.env
@@ -40,7 +40,7 @@ services:
 
   redis:
     image: redis:8.10-alpine
-    container_name: nsp-redis
+    container_name: nsm-redis
     restart: unless-stopped
     env_file:
       - ./secrets/bootstrap.env
@@ -54,7 +54,7 @@ services:
 
   migrate:
     build: { context: ./app }
-    container_name: nsp-migrate
+    container_name: nsm-migrate
     env_file:
       - ./.env
       - ./secrets/bootstrap.env
@@ -70,7 +70,7 @@ services:
 
   api:
     build: { context: ./app }
-    container_name: nsp-api
+    container_name: nsm-api
     restart: unless-stopped
     env_file:
       - ./.env
@@ -98,7 +98,7 @@ services:
 
   worker:
     build: { context: ./app }
-    container_name: nsp-worker
+    container_name: nsm-worker
     restart: unless-stopped
     env_file:
       - ./.env
@@ -123,7 +123,7 @@ services:
   # Upload-only FTP receiver for legacy RouterOS backups (./manage.sh legacy-backup-enable <IP>).
   legacy-ftp:
     build: { context: ./app }
-    container_name: nsp-legacy-ftp
+    container_name: nsm-legacy-ftp
     profiles: ["legacyftp"]
     restart: unless-stopped
     env_file:
@@ -150,7 +150,7 @@ services:
 
   syslog:
     build: { context: ./app }
-    container_name: nsp-syslog
+    container_name: nsm-syslog
     restart: unless-stopped
     env_file:
       - ./.env
@@ -182,7 +182,7 @@ services:
 
   caddy:
     image: caddy:2.11.4-alpine
-    container_name: nsp-caddy
+    container_name: nsm-caddy
     restart: unless-stopped
     ports:
       - "80:80"
@@ -199,7 +199,7 @@ services:
 
   genieacs-mongo:
     image: mongo:7.0
-    container_name: nsp-genieacs-mongo
+    container_name: nsm-genieacs-mongo
     profiles: ["acs"]
     restart: unless-stopped
     volumes:
@@ -215,7 +215,7 @@ services:
   # CPE-facing CWMP endpoint (TR-069 ACS URL: http://<host>:7547).
   genieacs-cwmp:
     <<: *genieacs
-    container_name: nsp-genieacs-cwmp
+    container_name: nsm-genieacs-cwmp
     command: ["genieacs-cwmp"]
     ports:
       - "7547:7547"
@@ -223,13 +223,13 @@ services:
   # Northbound API read by NSM (http://genieacs-nbi:7557); never published on the host.
   genieacs-nbi:
     <<: *genieacs
-    container_name: nsp-genieacs-nbi
+    container_name: nsm-genieacs-nbi
     command: ["genieacs-nbi"]
 
   # File server for firmware/config files downloaded by the CPE.
   genieacs-fs:
     <<: *genieacs
-    container_name: nsp-genieacs-fs
+    container_name: nsm-genieacs-fs
     command: ["genieacs-fs"]
     ports:
       - "7567:7567"
@@ -237,7 +237,7 @@ services:
   # Administration UI, bound to the host loopback only (use an SSH tunnel).
   genieacs-ui:
     <<: *genieacs
-    container_name: nsp-genieacs-ui
+    container_name: nsm-genieacs-ui
     command: ["genieacs-ui"]
     env_file:
       - ./secrets/bootstrap.env

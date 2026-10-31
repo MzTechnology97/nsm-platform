@@ -35,7 +35,7 @@ def main():
     assert data["acs_url"] == "http://testserver:7547/" and data["panel_url"].endswith(":7080/")
     assert data["base_provision"] == "nsm-base" and "PeriodicInformInterval" in data["provision_script"]
     assert [preset["name"] for preset in data["presets"]] == ["nsm-tplink", "nsm-all-cpe"]
-    # ACS_CWMP_URL sets the address the CPEs reach NSP on, shown in the guide.
+    # ACS_CWMP_URL sets the address the CPEs reach NSM on, shown in the guide.
     os.environ["ACS_CWMP_URL"] = "http://198.51.100.28:7547"
     try:
         assert client.get("/api/ui/v1/admin/acs").json()["acs_url"] == "http://198.51.100.28:7547"
