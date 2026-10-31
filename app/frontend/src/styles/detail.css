@@ -260,12 +260,7 @@
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
 }
 
-/* The device list keeps its six tiles on one row. */
-.ui-ring-tiles.ui-device-kpis {
-  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
-}
-
-.ui-ring-tiles:not(.ui-device-kpis) .ui-ring-tile-body > span:first-child {
+.ui-ring-tiles .ui-ring-tile-body > span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -764,22 +759,6 @@ a.ui-device-head-cves:hover {
   margin-bottom: var(--space-2);
   color: var(--muted);
   font-size: 13px;
-}
-
-@media (max-width: 520px) {
-  .ui-ring-tiles.ui-device-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ui-device-kpis .ui-ring-tile {
-    gap: var(--space-2);
-    padding: 10px;
-  }
-
-  .ui-device-kpis .ui-tile-ring {
-    width: 34px;
-    height: 34px;
-  }
 }
 
 /* Open issues on the device page: the severity pill carries the colour, the title reads as text (link on hover). */
