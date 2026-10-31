@@ -7734,8 +7734,6 @@
     "removal": "page de retrait",
     "unassigned": "Votre adresse, non attribuée",
     "unknown": "Aucun équipement connu",
-    "more_one": "{{count}} autre adresse non affichée : utilisez les filtres.",
-    "more_other": "{{count}} autres adresses non affichées : utilisez les filtres.",
     "empty": "Aucune adresse signalée par les sources actives.",
     "emptyFiltered": "Aucune adresse avec ces filtres.",
     "prefixesTitle": "Préfixes sur listes de menaces",

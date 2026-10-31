@@ -106,6 +106,12 @@ def main():
     assert [r["address"] for r in client.get("/api/ui/v1/security/ip-abuse?q=192.0.2").json()["items"]] == ["192.0.2.50"]
     assert len(client.get("/api/ui/v1/security/ip-abuse?source=bogus").json()["items"]) == 4, "an unknown source filters nothing"
 
+    # Pages: the same order, total and counts over all the addresses, whatever the page.
+    rest = client.get("/api/ui/v1/security/ip-abuse?offset=1&limit=50").json()
+    assert [r["address"] for r in rest["items"]] == [r["address"] for r in page["items"]][1:], rest["items"]
+    assert rest["total"] == 4 and rest["counts"] == page["counts"] and rest["offset"] == 1 and rest["limit"] == 50
+    assert client.get("/api/ui/v1/security/ip-abuse?offset=50").json()["items"] == []
+
     # The dashboard tile: the same counts, only for who may read the security pages.
     tile = client.get("/api/ui/v1/dashboard").json()["ip_abuse"]
     enabled = tile.pop("sources_enabled")

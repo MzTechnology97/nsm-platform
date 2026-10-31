@@ -7734,8 +7734,6 @@
     "removal": "removal page",
     "unassigned": "Your address, not assigned",
     "unknown": "No known device",
-    "more_one": "{{count}} more address not shown: use the filters.",
-    "more_other": "{{count}} more addresses not shown: use the filters.",
     "empty": "No address reported by the active sources.",
     "emptyFiltered": "No address with these filters.",
     "prefixesTitle": "Prefixes on threat lists",

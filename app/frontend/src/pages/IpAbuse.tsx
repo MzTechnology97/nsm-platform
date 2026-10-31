@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 
 import { IP_ABUSE_SOURCES, type IpAbuseFilters, type IpAbuseRow, useIpAbuse } from "../api/security";
 import { BrandIcon } from "../app/BrandIcon";
+import { Pager } from "../app/Pager";
 import { Loading } from "../app/States";
 import { formatDate, formatDateTime, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { pageParams, usePaging } from "../lib/paging";
 
 /** Every report about the operator's addresses, from AbuseIPDB, the DNS blacklists and the threat lists (CYBER-01). */
 export function IpAbuse() {
@@ -19,7 +21,8 @@ export function IpAbuse() {
   useEffect(() => {
     if ((search.q ?? "") !== debounced) update({ q: debounced || undefined });
   }, [debounced]);
-  const query = useIpAbuse(search);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useIpAbuse(search, pageParams(paging));
   const data = query.data;
   const off = data ? IP_ABUSE_SOURCES.filter((key) => !data.modules[key].enabled) : [];
 
@@ -72,21 +75,23 @@ export function IpAbuse() {
       ) : !data ? (
         <Loading />
       ) : data.items.length ? (
-        <div className="ui-data-wrap" aria-busy={query.isFetching}>
-          <table className="ui-data-table">
-            <thead>
-              <tr>
-                {["address", "lists", "score", "reports", "last", "since", "holder"].map((column) => (
-                  <th key={column}><span className="ui-th">{t(`ipAbuse.columns.${column}`)}</span></th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((row) => <Row key={row.address} row={row} />)}
-            </tbody>
-          </table>
-          {data.total > data.items.length && <small className="ui-muted">{t("ipAbuse.more", { count: data.total - data.items.length })}</small>}
-        </div>
+        <>
+          <div className="ui-data-wrap" aria-busy={query.isFetching}>
+            <table className="ui-data-table">
+              <thead>
+                <tr>
+                  {["address", "lists", "score", "reports", "last", "since", "holder"].map((column) => (
+                    <th key={column}><span className="ui-th">{t(`ipAbuse.columns.${column}`)}</span></th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((row) => <Row key={row.address} row={row} />)}
+              </tbody>
+            </table>
+          </div>
+          <Pager total={data.total} paging={paging} busy={query.isFetching} />
+        </>
       ) : (
         <div className="ui-empty">{search.source || search.q ? t("ipAbuse.emptyFiltered") : t("ipAbuse.empty")}</div>
       )}

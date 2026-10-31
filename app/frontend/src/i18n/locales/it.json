@@ -7734,8 +7734,6 @@
     "removal": "pagina di rimozione",
     "unassigned": "Indirizzo tuo non assegnato",
     "unknown": "Nessun dispositivo noto",
-    "more_one": "Altro {{count}} indirizzo non mostrato: usa i filtri.",
-    "more_other": "Altri {{count}} indirizzi non mostrati: usa i filtri.",
     "empty": "Nessun indirizzo segnalato dalle fonti attive.",
     "emptyFiltered": "Nessun indirizzo con questi filtri.",
     "prefixesTitle": "Prefissi in liste di minaccia",

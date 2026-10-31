@@ -19,14 +19,14 @@ from fastapi import APIRouter, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 
-from app import abuseipdb, dnsbl, ip_attribution, threat_lists
+from app import abuseipdb, dnsbl, ip_attribution, pagination, threat_lists
 from app.db import SessionLocal
 from app.models import Customer, Device, utcnow
 from app.ui_api import brand_icon, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 
-MAX_ROWS = 1000
+PAGE = 50
 SOURCES = ("abuseipdb", "dnsbl", "threat_lists")
 
 
@@ -91,7 +91,11 @@ def summary(db) -> dict:
     return {**_counts(list(data["rows"].values())), "sources_enabled": sum(1 for module in data["modules"].values() if module["enabled"])}
 
 
-def overview(db, source: str = "", q: str = "") -> dict:
+def _lists(entry: dict) -> int:
+    return len(entry["sources"]) + sum(len(s.get("zones") or []) - 1 for s in entry["sources"] if s["source"] == "dnsbl")
+
+
+def overview(db, source: str = "", q: str = "", offset: int = 0, size: int = PAGE) -> dict:
     data = collect(db)
     now = utcnow()
     operator_prefixes = abuseipdb._prefixes(db)
@@ -100,10 +104,13 @@ def overview(db, source: str = "", q: str = "") -> dict:
     items = []
     selected = [entry for entry in data["rows"].values()
                 if (not source or any(s["source"] == source for s in entry["sources"])) and (not q or q.strip() in entry["address"])]
-    held_by = ip_attribution.who_had_many(db, [entry["address"] for entry in selected], now)
+    # Most lists first, then the highest score, then the latest report; only the rows of the page need a holder.
+    selected.sort(key=lambda r: (_lists(r), r["score"] or 0, str(r["last_report"] or "")), reverse=True)
+    page = selected[offset:offset + size]
+    held_by = ip_attribution.who_had_many(db, [entry["address"] for entry in page], now)
     held_ids = [uuid.UUID(held["device"]["id"]) for held in held_by.values() if held["device"]]
     held_devices = {device.id: device for device in db.scalars(select(Device).where(Device.id.in_(held_ids)))}
-    for entry in selected:
+    for entry in page:
         held = held_by[entry["address"]]
         device = held_devices[uuid.UUID(held["device"]["id"])] if held["device"] else holders.get(entry["address"])
         customer = held["customer"]
@@ -112,24 +119,23 @@ def overview(db, source: str = "", q: str = "") -> dict:
                 found = db.get(Customer, device.customer_id)
                 customers[device.customer_id] = {"id": str(found.id), "name": found.name} if found else None
             customer = customers[device.customer_id]
-        items.append({**entry, "lists": len(entry["sources"]) + sum(len(s.get("zones") or []) - 1 for s in entry["sources"] if s["source"] == "dnsbl"),
+        items.append({**entry, "lists": _lists(entry),
                       "holder": {"confidence": held["confidence"], "username": held["username"], "customer": customer,
                                  "device": {"id": str(device.id), "name": device.display_name or device.device_identity or device.name,
                                             "brand": brand_icon(device)} if device else None},
                       "unassigned": held["confidence"] == "none" and device is None and abuseipdb._inside(entry["address"], operator_prefixes)})
-    # Most lists first, then the highest score, then the latest report.
-    items.sort(key=lambda r: (r["lists"], r["score"] or 0, str(r["last_report"] or "")), reverse=True)
     return {
-        "items": items[:MAX_ROWS], "total": len(items), "prefixes": data["prefixes"], "modules": data["modules"],
+        "items": items, "total": len(selected), "offset": offset, "limit": size, "prefixes": data["prefixes"], "modules": data["modules"],
         "counts": _counts(list(data["rows"].values())),
     }
 
 
 @router.get("/security/ip-abuse")
-def ip_abuse(request: Request, source: str = "", q: str = ""):
+def ip_abuse(request: Request, source: str = "", q: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         ui_user(request, db, "security.read")
-        return jsonable_encoder(overview(db, source if source in SOURCES else "", q[:64]))
+        start, size = pagination.window(offset, limit, PAGE)
+        return jsonable_encoder(overview(db, source if source in SOURCES else "", q[:64], start, size))
 
 
 def install_ip_abuse(app) -> None:

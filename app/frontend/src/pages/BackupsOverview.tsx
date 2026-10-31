@@ -30,6 +30,7 @@ export function BackupsOverview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
   const paging = usePaging(JSON.stringify(search));
+  const coverage = usePaging("");
   // A customer has few devices: its tab lists them all unless a view is chosen.
   const view = search.view ?? (scope ? "all" : "attention");
   const query = useBackupOverview({ ...search, view }, pageParams(paging));
@@ -126,7 +127,7 @@ export function BackupsOverview() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.customers.map((row) => (
+                  {data.customers.slice(coverage.offset, coverage.offset + coverage.size).map((row) => (
                     <tr key={row.id}>
                       <td><Link to="/customers/$customerId" params={{ customerId: row.id }}>{row.name}</Link></td>
                       <td>{row.protected}/{row.devices}</td>
@@ -138,6 +139,7 @@ export function BackupsOverview() {
                 </tbody>
               </table>
             </div>
+            <Pager total={data.customers.length} paging={coverage} />
           </section>}
           <section className="ui-panel">
             <div className="ui-page-header-row">

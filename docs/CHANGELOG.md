@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.340 — 2026-10-31
+
+Interface
+- **Long tables are divided into pages.** *SLA clienti*, *Abusi IP* and the customer coverage in *Backup* show 50, 100 or 200 rows per page, like the other lists. *Abusi IP* no longer stops at 1000 addresses, and it looks up the holder only for the addresses on the page.
 ## 0.49.339 — 2026-10-31
 
 Interface

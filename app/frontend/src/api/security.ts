@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { api } from "./client";
 import type { BrandRef } from "../app/BrandIcon";
+import { withPage } from "../lib/paging";
 
 export const VULN_SEVERITIES = ["", "severe", "critical", "high", "medium", "low", "unknown"] as const;
 export type VulnSeverity = (typeof VULN_SEVERITIES)[number];
@@ -457,10 +458,10 @@ export interface IpAbusePage {
   counts: { addresses: number; max_score: number } & Record<IpAbuseSourceKey, number>;
 }
 
-export const useIpAbuse = (filters: IpAbuseFilters) =>
+export const useIpAbuse = (filters: IpAbuseFilters, page: { offset: number; limit: number }) =>
   useQuery({
-    queryKey: ["ip-abuse", filters],
-    queryFn: () => api<IpAbusePage>(`/api/ui/v1/security/ip-abuse${query({ source: filters.source, q: filters.q })}`),
+    queryKey: ["ip-abuse", filters, page],
+    queryFn: () => api<IpAbusePage>(withPage(`/api/ui/v1/security/ip-abuse${query({ source: filters.source, q: filters.q })}`, page)),
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
