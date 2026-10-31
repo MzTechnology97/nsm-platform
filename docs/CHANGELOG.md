@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.341 — 2026-10-31
+
+Fixes
+- **The *Clienti UISP* page opens faster.** UISP takes about 8 seconds to send its site list, so the page and its buttons now reuse the list for up to five minutes. An endpoint just created in UISP can therefore take up to five minutes to appear there. The automatic import still reads the list every time.
 ## 0.49.340 — 2026-10-31
 
 Interface

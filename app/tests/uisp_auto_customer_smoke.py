@@ -1,6 +1,8 @@
 """UISP endpoints → NSM customers by name, operator links and automatic device import (synthetic data)."""
 import re
+import time
 import uuid
+from types import SimpleNamespace
 
 import httpx
 from fastapi.testclient import TestClient
@@ -41,7 +43,40 @@ def login(username):
     return client, {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
 
 
+def check_endpoint_cache():
+    """The page reads the site list once per period; another token, an expired entry or a failed read go back to UISP."""
+    calls = []
+
+    def fake(connection):
+        calls.append(connection.base_url)
+        if connection.base_url == "https://down.example.test":
+            raise uisp.UispConnectorError("down")
+        return [{"id": str(len(calls))}]
+
+    real, auto.fetch_endpoints = auto.fetch_endpoints, fake
+    auto._endpoints_cache = None
+    try:
+        one = SimpleNamespace(base_url="https://a.example.test", secret_encrypted="x")
+        assert auto.cached_endpoints(one) == auto.cached_endpoints(one) == [{"id": "1"}] and len(calls) == 1
+        other = SimpleNamespace(base_url="https://a.example.test", secret_encrypted="y")
+        assert auto.cached_endpoints(other) == [{"id": "2"}], "a new token reads again"
+        auto._endpoints_cache = (time.monotonic() - auto.ENDPOINTS_CACHE_SECONDS - 1, *auto._endpoints_cache[1:])
+        assert auto.cached_endpoints(other) == [{"id": "3"}], "an expired entry reads again"
+        for _ in range(2):
+            try:
+                auto.cached_endpoints(SimpleNamespace(base_url="https://down.example.test", secret_encrypted="y"))
+                raise AssertionError("a failed read must not be hidden")
+            except uisp.UispConnectorError:
+                pass
+        assert calls.count("https://down.example.test") == 2, "a failed read is not kept"
+        assert auto.cached_endpoints(other) == [{"id": "3"}], "a failed read leaves the last good one"
+    finally:
+        auto.fetch_endpoints = real
+        auto._endpoints_cache = None
+
+
 def main():
+    check_endpoint_cache()
     sfx = uuid.uuid4().hex[:6]
     e_match, e_free, e_twin, e_skip, s_tower = (f"{k}-{sfx}" for k in ("e-match", "e-free", "e-twin", "e-skip", "s-tower"))
     sites = [
