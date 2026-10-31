@@ -2718,8 +2718,8 @@
     "templatesCurrent": "Las plantillas NSM están al día (instaladas el {{when}}). NSM las actualiza solo tras cada actualización.",
     "templatesPending": "Esta versión de NSM tiene plantillas más recientes que las instaladas el {{when}}: NSM las instala en 30 minutos, o pulsa Instalar.",
     "templatesAuto": "Una vez instaladas, NSM mantiene estas plantillas al día tras cada actualización.",
-    "guideIntro": "Cada router necesita un solo paso manual: activar el CWMP y poner la URL ACS. A partir de ahí NSP reconoce el CPE y lo monitoriza en solo lectura, sin cambiar su configuración.",
-    "readonlyTitle": "Qué hace NSP y qué no toca",
+    "guideIntro": "Cada router necesita un solo paso manual: activar el CWMP y poner la URL ACS. A partir de ahí NSM reconoce el CPE y lo monitoriza en solo lectura, sin cambiar su configuración.",
+    "readonlyTitle": "Qué hace NSM y qué no toca",
     "readonly": {
       "reads": "Lee: estado en línea/fuera de línea, último contacto, modelo, firmware, IP, CPU, memoria, tráfico WAN, clientes Wi-Fi y línea DSL.",
       "actions": "Acciones disponibles: reinicio, comprobación de firmware, diagnóstico.",

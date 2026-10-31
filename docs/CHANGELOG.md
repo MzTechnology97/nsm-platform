@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.344 — 2026-10-31
+
+The product is NSM everywhere: interface texts and container names
+
+### Changed
+- The ACS guide in *Amministrazione → ACS* said "NSP" in two places ("Cosa fa NSP e cosa non tocca" and its introduction). It now says NSM in all four languages, and so do the operations docs.
+- The Docker containers are named `nsm-*` (`nsm-api`, `nsm-worker`, `nsm-postgres`, …) instead of `nsp-*`. The next update recreates them under the new names, with a few seconds of downtime. The data is untouched: it lives in `./data/*` and the named volumes. Scripts use the compose service names (`docker compose exec api`), so they need no change.
+- Not renamed, because it would have a cost and is not visible: the Redis keys (`nsp:*`; renaming them would drop the jobs queued during the update) and the session cookie (`nsp_session`; renaming it would log everyone out).
 ## 0.49.343 — 2026-10-31
 
 Scheduled airOS firewall: offline CPEs are retried, a CPE switched off does not stop the request

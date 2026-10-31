@@ -130,8 +130,8 @@ def _public_host(request: Request) -> tuple[str, str]:
 
 
 def cpe_acs_url(request: Request) -> str:
-    """The ACS URL the CPEs are told to use: ``ACS_CWMP_URL`` when set (the address the routers reach NSP on),
-    else the host the administrator opened NSP with, port 7547."""
+    """The ACS URL the CPEs are told to use: ``ACS_CWMP_URL`` when set (the address the routers reach NSM on),
+    else the host the administrator opened NSM with, port 7547."""
     configured = os.getenv("ACS_CWMP_URL", "").strip()
     if configured:
         return configured

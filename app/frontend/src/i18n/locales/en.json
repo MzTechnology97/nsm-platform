@@ -2718,8 +2718,8 @@
     "templatesCurrent": "NSM templates are up to date (installed {{when}}). NSM updates them by itself after every upgrade.",
     "templatesPending": "This NSM version has newer templates than the ones installed {{when}}: NSM installs them within 30 minutes, or press Install now.",
     "templatesAuto": "Once installed, NSM keeps these templates up to date by itself after every upgrade.",
-    "guideIntro": "Each router needs one manual step: turn CWMP on and set the ACS URL. From then on NSP recognises the CPE and monitors it read-only, without changing its configuration.",
-    "readonlyTitle": "What NSP does and does not touch",
+    "guideIntro": "Each router needs one manual step: turn CWMP on and set the ACS URL. From then on NSM recognises the CPE and monitors it read-only, without changing its configuration.",
+    "readonlyTitle": "What NSM does and does not touch",
     "readonly": {
       "reads": "Reads: online/offline state, last contact, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients and DSL line.",
       "actions": "Available actions: reboot, firmware check, diagnostics.",
