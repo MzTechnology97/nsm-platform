@@ -7811,6 +7811,8 @@
     "status": {
       "scheduled": "Programmé",
       "verifying": "Redémarrage",
+      "waiting": "Hors ligne, en attente",
+      "powered_off": "Éteinte après les règles, en attente",
       "done": "Terminé",
       "skipped": "Ignoré",
       "failed": "Échec",

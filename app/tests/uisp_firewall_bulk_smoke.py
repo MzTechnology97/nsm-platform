@@ -1,5 +1,6 @@
 """ACCESS-01 in bulk: airOS CPEs without active rules scheduled together; window, pilot alone, one per run, wait for the CPE to
-come back, skip what cannot be done without stopping, stop the request at the first failure, cancel, typed count."""
+come back, skip what cannot be done without stopping, stop the request at the first failure, cancel, typed count; an offline CPE
+waits and is tried again, one switched off after the apply (its access point no longer sees it) does not stop the others."""
 import re
 import uuid
 from datetime import timedelta
@@ -35,14 +36,20 @@ class Fleet(FakeUisp):
         self.broken = set()
         self.slow = set()
         self.apply_timeouts = []
+        self.ap = {}  # CPE -> its access point in UISP
+        self.linked = set()  # CPEs their access point lists among its stations
 
     def __call__(self, req: httpx.Request):
         path = req.url.path.removeprefix("/nms/api/v2.1")
+        if req.method == "GET" and path.startswith("/devices/airmaxes/") and path.endswith("/stations"):
+            ap = path.split("/")[3]
+            return httpx.Response(200, json=[{"deviceIdentification": {"id": cpe}} for cpe in self.linked if self.ap.get(cpe) == ap])
         ext = path.split("/")[2] if path.startswith("/devices/") else None
         if ext in self.broken and req.method == "POST" and path.endswith("/backups"):
             return httpx.Response(500, json={"statusCode": 500, "message": "boom"})
         if req.method == "GET" and path == f"/devices/{ext}":
-            return httpx.Response(200, json={"overview": {"status": "disconnected" if ext in self.offline else "active"}})
+            return httpx.Response(200, json={"overview": {"status": "disconnected" if ext in self.offline else "active"},
+                                             "attributes": {"apDevice": {"id": self.ap[ext]}} if ext in self.ap else {}})
         if req.method == "POST" and path.endswith("/apply"):
             self.apply_timeouts.append(req.extensions["timeout"]["read"])
         response = super().__call__(req)
@@ -56,7 +63,7 @@ def main():
     fake = Fleet()
     ops._client = lambda connection: httpx.Client(transport=httpx.MockTransport(fake), headers={"x-auth-token": TOKEN})
     uisp_syslog.SLEEP = lambda seconds: None
-    configs = {key: CFG for key in ("a", "b", "c", "d", "e", "f", "off", "ownrules", "done", "knownbridge")}
+    configs = {key: CFG for key in ("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "off", "ownrules", "done", "knownbridge")}
     configs["bridge"] = CFG.replace("netmode=router", "netmode=bridge")
     configs["ap"] = CFG
     with SessionLocal() as db:
@@ -163,15 +170,30 @@ def main():
     assert status("bridge") == "skipped" and stats["skipped"] == 1 and status("c") == "scheduled", stats
     assert fake.devices[ext("bridge")]["applied"] == []
     assert bulk.tick(start + timedelta(minutes=7))["started"] == 1 and status("c") == "verifying"
-    # Offline is skipped without asking anything of the CPE; it can be scheduled again.
+    # Offline waits without asking anything of the CPE, the others go on; tried again every 30 minutes until it is back.
     fake.offline.add(ext("off"))
     backups = len(fake.devices[ext("off")]["backups"])
-    bulk.tick(start + timedelta(minutes=8))
-    assert status("off") == "skipped" and len(fake.devices[ext("off")]["backups"]) == backups
-    fake.offline.discard(ext("off"))
-    assert any(row["name"] == f"bk-off-{s}" for row in client.get(URL).json()["candidates"]), "skipped: candidate again"
+    assert bulk.tick(start + timedelta(minutes=8))["waiting"] == 1 and status("off") == "waiting"
+    assert len(fake.devices[ext("off")]["backups"]) == backups
+    assert not any(row["name"] == f"bk-off-{s}" for row in client.get(URL).json()["candidates"]), "still in its request"
     bulk.tick(start + timedelta(minutes=12))
     assert status("b") == "done" and status("c") == "done"
+    assert bulk.tick(start + timedelta(minutes=37))["waiting"] == 0, "not before its retry"
+    assert bulk.tick(start + timedelta(minutes=39))["waiting"] == 1 and status("off") == "waiting"
+    assert len(fake.devices[ext("off")]["backups"]) == backups
+    fake.offline.discard(ext("off"))
+    assert bulk.tick(start + timedelta(minutes=70))["started"] == 1 and status("off") == "verifying"
+    assert bulk.tick(start + timedelta(minutes=75))["done"] == 1 and status("off") == "done"
+    # Offline for 7 days: skipped, it can be scheduled again.
+    with SessionLocal() as db:
+        device = db.get(Device, ids["ownrules"])
+        device.inventory_data = {**device.inventory_data, bulk.KEY: {
+            "status": "waiting", "batch": "older", "at": start.isoformat(), "hours": 4, "services": ["ssh"],
+            "offline_since": (start - timedelta(days=7)).isoformat(), "retry_at": start.isoformat()}}
+        db.commit()
+    fake.offline.add(ext("ownrules"))
+    assert bulk.tick(start + timedelta(minutes=76))["skipped"] == 1 and status("ownrules") == "skipped"
+    fake.offline.discard(ext("ownrules"))
     # The window repeats the next night.
     assert bulk.in_window({"at": start.isoformat(), "hours": 4}, start + timedelta(days=1, hours=3)) is True
     assert bulk.in_window({"at": start.isoformat(), "hours": 4}, start + timedelta(days=1, hours=5)) is False
@@ -222,6 +244,46 @@ def main():
         db.commit()
     assert bulk.tick(start + timedelta(days=2))["skipped"] == 1 and status("ap") == "skipped"
     assert fake.devices[ext("ap")]["applied"] == [] and len(fake.devices[ext("ap")]["backups"]) == 1, "nothing asked of the access point"
+
+    # Switched off after the apply (its access point no longer sees it): the others go on, done once back, failed after 7 days.
+    t = start + timedelta(days=3)
+    for key in ("g", "h", "i", "j"):
+        fake.ap[ext(key)] = f"u-bk-apx-{s}"
+        fake.linked.add(ext(key))
+    fifth = request(["g", "h"], t).json()
+    assert fifth["queued"] == 2 and bulk.tick(t)["started"] == 1 and status("g") == "verifying"
+    fake.offline.add(ext("g"))
+    fake.linked.discard(ext("g"))
+    stats = bulk.tick(t + timedelta(minutes=16))
+    assert status("g") == "powered_off" and stats["failed"] == 0 and stats["stopped"] == 0, stats
+    assert stats["started"] == 1 and status("h") == "verifying", "the next one goes, alone: nothing proven yet"
+    assert any(row["name"] == f"bk-g-{s}" and row["status"] == "powered_off" for row in client.get(URL).json()["problems"])
+    fake.offline.add(ext("h"))
+    fake.linked.discard(ext("h"))
+    assert bulk.tick(t + timedelta(minutes=33))["powered_off"] == 1 and status("h") == "powered_off"
+    fake.offline.discard(ext("g"))
+    assert bulk.tick(t + timedelta(minutes=34))["done"] == 1 and status("g") == "done"
+    stats = bulk.tick(t + timedelta(days=7, minutes=17))
+    assert status("h") == "failed" and stats["failed"] == 1 and stats["stopped"] == 0, stats
+    fake.offline.discard(ext("h"))
+    fake.linked.add(ext("h"))
+
+    # Still seen by its access point but not back in UISP: the rules may be the cause, the request stops.
+    u = t + timedelta(days=8)
+    sixth = request(["i", "j"], u).json()
+    assert sixth["queued"] == 2 and bulk.tick(u)["started"] == 1 and status("i") == "verifying"
+    fake.offline.add(ext("i"))
+    stats = bulk.tick(u + timedelta(minutes=16))
+    assert status("i") == "failed" and status("j") == "stopped" and stats["stopped"] == 1, stats
+    fake.offline.discard(ext("i"))
+    # Too many switched off in one request: stopped all the same.
+    bulk.MAX_POWERED_OFF = 0
+    assert request(["j"], u).json()["queued"] == 1 and bulk.tick(u + timedelta(minutes=17))["started"] == 1
+    fake.offline.add(ext("j"))
+    fake.linked.discard(ext("j"))
+    assert bulk.tick(u + timedelta(minutes=33))["failed"] == 1 and status("j") == "failed"
+    bulk.MAX_POWERED_OFF = 2
+    fake.offline.discard(ext("j"))
 
     # Single-device page unchanged: the typed name is still required there.
     assert client.post(f"/api/ui/v1/devices/{ids['f']}/uisp/firewall", json={"confirmation": "wrong"}).json()["detail"]["code"] == "confirmation"

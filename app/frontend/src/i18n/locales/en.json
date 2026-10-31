@@ -7811,6 +7811,8 @@
     "status": {
       "scheduled": "Scheduled",
       "verifying": "Rebooting",
+      "waiting": "Offline, waiting",
+      "powered_off": "Switched off after the rules, waiting",
       "done": "Done",
       "skipped": "Skipped",
       "failed": "Failed",

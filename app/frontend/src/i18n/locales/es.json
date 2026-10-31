@@ -7811,6 +7811,8 @@
     "status": {
       "scheduled": "Programada",
       "verifying": "Reiniciando",
+      "waiting": "Sin conexión, en espera",
+      "powered_off": "Apagada tras las reglas, en espera",
       "done": "Completada",
       "skipped": "Omitida",
       "failed": "Fallida",

@@ -97,7 +97,7 @@ export function UispFirewallBulkPanel({ customer, toolbar }: { customer?: string
                     <td>{t("uispFirewallBulk.batch.hours", { count: batch.hours })}</td>
                     <td>{batch.by ?? "—"}</td>
                     <td>{Object.entries(batch.counts).map(([status, count]) => `${t(`uispFirewallBulk.status.${status}`)}: ${count}`).join(" · ")}</td>
-                    <td>{data.can_schedule && (batch.counts.scheduled ?? 0) > 0 && (
+                    <td>{data.can_schedule && (batch.counts.scheduled ?? 0) + (batch.counts.waiting ?? 0) > 0 && (
                       <button type="button" className="ui-button" disabled={cancel.isPending} onClick={() => cancel.mutate(batch.batch)}>{t("uispFirewallBulk.cancel")}</button>
                     )}</td>
                   </tr>
