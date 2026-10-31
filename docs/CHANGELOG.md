@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.343 — 2026-10-31
+
+Scheduled airOS firewall: offline CPEs are retried, a CPE switched off does not stop the request
+
+### Changed
+- A CPE offline in UISP at its turn no longer drops out of the request. It waits, is tried again every 30 minutes within the request's nightly windows and is skipped only after 7 days offline. It is never rebooted while offline. The same applies to a CPE that goes offline between the check and the apply.
+- A CPE not back online 15 minutes after the apply no longer stops the request when its access point no longer lists it among its stations: it was switched off, since the rules only filter management traffic. It waits as "switched off after the rules", counts as done when back online and fails after 7 days without stopping the others. If the access point still sees it, or UISP cannot tell, the request stops as before, and a third CPE switched off while two are waiting stops it too.
+- *Esposizione* shows the two new states. CPEs switched off after the rules are listed among the CPEs to check, and a request with CPEs waiting can still be cancelled.
 ## 0.49.342 — 2026-10-31
 
 UISP configuration apply: a late answer is not a failure
