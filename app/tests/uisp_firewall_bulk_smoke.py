@@ -38,9 +38,12 @@ class Fleet(FakeUisp):
         self.apply_timeouts = []
         self.ap = {}  # CPE -> its access point in UISP
         self.linked = set()  # CPEs their access point lists among its stations
+        self.unreachable = set()  # CPEs whose status UISP does not answer for
 
     def __call__(self, req: httpx.Request):
         path = req.url.path.removeprefix("/nms/api/v2.1")
+        if req.method == "GET" and path.removeprefix("/devices/") in self.unreachable:
+            raise httpx.ConnectTimeout("UISP not answering", request=req)
         if req.method == "GET" and path.startswith("/devices/airmaxes/") and path.endswith("/stations"):
             ap = path.split("/")[3]
             return httpx.Response(200, json=[{"deviceIdentification": {"id": cpe}} for cpe in self.linked if self.ap.get(cpe) == ap])
@@ -63,7 +66,7 @@ def main():
     fake = Fleet()
     ops._client = lambda connection: httpx.Client(transport=httpx.MockTransport(fake), headers={"x-auth-token": TOKEN})
     uisp_syslog.SLEEP = lambda seconds: None
-    configs = {key: CFG for key in ("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "off", "ownrules", "done", "knownbridge")}
+    configs = {key: CFG for key in ("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "off", "ownrules", "done", "knownbridge")}
     configs["bridge"] = CFG.replace("netmode=router", "netmode=bridge")
     configs["ap"] = CFG
     with SessionLocal() as db:
@@ -235,6 +238,17 @@ def main():
     assert bulk.tick(start + timedelta(days=1, minutes=5))["done"] == 1 and status("f") == "done"
     fake.slow.discard(ext("f"))
     assert set(fake.apply_timeouts) == {uisp_syslog.APPLY_TIMEOUT}, fake.apply_timeouts
+
+    # UISP not answering for a CPE's status (2026-11-01, it stopped 467 CPEs): nothing asked of it, it waits, the others go on.
+    assert request(["k", "l"], start).json()["queued"] == 2
+    fake.unreachable.add(ext("k"))
+    stats = bulk.tick(start + timedelta(days=1, minutes=10))
+    assert status("k") == "waiting" and status("l") == "verifying" and stats["failed"] == 0 and stats["stopped"] == 0, stats
+    assert fake.devices[ext("k")]["applied"] == []
+    fake.unreachable.discard(ext("k"))
+    assert bulk.tick(start + timedelta(days=1, minutes=14))["done"] == 1 and status("l") == "done"
+    assert bulk.tick(start + timedelta(days=1, minutes=41))["started"] == 1 and status("k") == "verifying"
+    assert bulk.tick(start + timedelta(days=1, minutes=45))["done"] == 1 and status("k") == "done"
 
     # An access point is never scheduled, and one already scheduled is skipped untouched at its turn.
     assert [r["reason"] for r in request(["ap"], start).json()["skipped"]] == ["not_cpe"]
