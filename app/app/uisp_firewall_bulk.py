@@ -112,15 +112,15 @@ def _linked(db, device: Device) -> bool | None:
     return any(isinstance(s, dict) and (s.get("deviceIdentification") or {}).get("id") == device.external_device_id for s in stations)
 
 
-def _wait(device: Device, value: dict, now, stats: dict) -> None:
-    """Offline at its turn: try again later, skipped once offline for ``OFFLINE_GIVE_UP``."""
+def _wait(device: Device, value: dict, now, stats: dict, reason: str = "La CPE non è online in UISP.") -> None:
+    """Offline (or UISP not answering) at its turn: try again later, skipped after ``OFFLINE_GIVE_UP``."""
     since = value.get("offline_since") or now.isoformat()
     if now - _parse(since) >= OFFLINE_GIVE_UP:
-        _save(device, status="skipped", error="La CPE è rimasta offline in UISP per 7 giorni.")
+        _save(device, status="skipped", error=f"{reason} Per 7 giorni: NSM non ci riprova più.")
         stats["skipped"] += 1
         return
     _save(device, status="waiting", offline_since=since, retry_at=(now + OFFLINE_RETRY).isoformat(),
-          error="La CPE non è online in UISP: NSM riprova ogni 30 minuti nella finestra.")
+          error=f"{reason} NSM riprova ogni 30 minuti nella finestra.")
     stats["waiting"] += 1
 
 
@@ -241,7 +241,14 @@ def _start(db, device: Device, rows: list[Device], now, stats: dict) -> bool:
         db.commit()
         return False
     try:
-        if not _online(db, device):
+        online = _online(db, device)
+    except InputError as exc:
+        # Nothing was asked of the CPE yet: UISP not answering says nothing about the rules, so it does not stop the request.
+        _wait(device, value, now, stats, str(exc))
+        db.commit()
+        return False
+    try:
+        if not online:
             _wait(device, value, now, stats)
             db.commit()
             return False

@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.345 — 2026-11-01
+
+Scheduled airOS firewall: UISP not answering for one CPE no longer stops the request
+
+### Fixed
+- On the night of 2026-11-01, UISP did not answer while NSM read the status of one CPE before applying its rules. NSM marked that CPE failed and stopped the 467 CPEs of the request that had not started yet, although nothing had been asked of the CPE. Now a CPE whose status UISP does not return waits like an offline one: NSM tries it again every 30 minutes within the windows and skips it after 7 days. The request goes on with the others. A failure while applying the rules still stops the request, as before.
 ## 0.49.344 — 2026-10-31
 
 The product is NSM everywhere: interface texts and container names
