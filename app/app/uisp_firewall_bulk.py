@@ -109,7 +109,9 @@ def _linked(db, device: Device) -> bool | None:
     stations = base._call(connection, "GET", f"/devices/airmaxes/{ap}/stations", "la lettura delle stazioni").json()
     if not isinstance(stations, list):
         return None
-    return any(isinstance(s, dict) and (s.get("deviceIdentification") or {}).get("id") == device.external_device_id for s in stations)
+    station = next((s for s in stations if isinstance(s, dict) and (s.get("deviceIdentification") or {}).get("id") == device.external_device_id), None)
+    # UISP keeps disconnected stations in the list with ``connected: false`` (2026-11-02): being listed is not being linked.
+    return False if station is None else station.get("connected")
 
 
 def _wait(device: Device, value: dict, now, stats: dict, reason: str = "La CPE non è online in UISP.") -> None:

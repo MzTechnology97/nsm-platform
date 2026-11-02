@@ -37,7 +37,7 @@ class Fleet(FakeUisp):
         self.slow = set()
         self.apply_timeouts = []
         self.ap = {}  # CPE -> its access point in UISP
-        self.linked = set()  # CPEs their access point lists among its stations
+        self.linked = set()  # CPEs their access point sees connected
         self.unreachable = set()  # CPEs whose status UISP does not answer for
 
     def __call__(self, req: httpx.Request):
@@ -46,7 +46,8 @@ class Fleet(FakeUisp):
             raise httpx.ConnectTimeout("UISP not answering", request=req)
         if req.method == "GET" and path.startswith("/devices/airmaxes/") and path.endswith("/stations"):
             ap = path.split("/")[3]
-            return httpx.Response(200, json=[{"deviceIdentification": {"id": cpe}} for cpe in self.linked if self.ap.get(cpe) == ap])
+            # Like UISP: every station the access point has known, the ones gone with ``connected: false``.
+            return httpx.Response(200, json=[{"deviceIdentification": {"id": cpe}, "connected": cpe in self.linked} for cpe, cpe_ap in self.ap.items() if cpe_ap == ap])
         ext = path.split("/")[2] if path.startswith("/devices/") else None
         if ext in self.broken and req.method == "POST" and path.endswith("/backups"):
             return httpx.Response(500, json={"statusCode": 500, "message": "boom"})

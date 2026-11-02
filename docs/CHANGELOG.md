@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.346 — 2026-11-02
+
+Scheduled airOS firewall: a CPE its access point no longer sees connected counts as switched off
+
+### Fixed
+- On the night of 2026-11-02, one CPE did not come back after its apply and stopped the 427 CPEs that had not started. The reason said "Il suo access point la vede ancora collegata", but UISP lists stations that are gone too, with `connected: false`. NSM read "listed" as "connected". It now checks `connected`. A CPE the access point lists as disconnected is "switched off after the rules", and the request goes on (up to 2 per request, as before). A CPE still connected but not back in UISP, or one UISP gives no answer for, still stops the request.
 ## 0.49.345 — 2026-11-01
 
 Scheduled airOS firewall: UISP not answering for one CPE no longer stops the request
