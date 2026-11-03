@@ -55,7 +55,7 @@ OFFLINE_GIVE_UP = timedelta(days=7)
 MAX_POWERED_OFF = 2
 ACTIVE = ("scheduled", "waiting", "verifying", "powered_off")
 PROBLEMS = ("failed", "stopped", "skipped", "powered_off")
-SKIP_CODES = ("blocked", "not_airos", "up_to_date")
+SKIP_CODES = ("blocked", "not_airos", "up_to_date", "backup_format")
 RECENT = timedelta(days=14)
 
 
