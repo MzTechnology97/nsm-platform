@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.347 — 2026-11-03
+
+Scheduled airOS firewall: a CPE whose UISP backup is not an archive is skipped, not a stop
+
+### Fixed
+- On the night of 2026-11-03, a scheduled firewall request stopped after 3 CPEs: 423 were stopped. The CPE that failed runs airOS 6.2. For it, UISP keeps the backup as the bare `system.cfg`, not as an archive. NSM could not read it and reported a raw archive error. Nothing had been sent to the CPE yet. Such a backup now gives a clear error (`backup_format`), and in a scheduled request that CPE is skipped while the others go on. Editing that kind of backup is not supported yet.
 ## 0.49.346 — 2026-11-02
 
 Scheduled airOS firewall: a CPE its access point no longer sees connected counts as switched off

@@ -67,7 +67,7 @@ def main():
     fake = Fleet()
     ops._client = lambda connection: httpx.Client(transport=httpx.MockTransport(fake), headers={"x-auth-token": TOKEN})
     uisp_syslog.SLEEP = lambda seconds: None
-    configs = {key: CFG for key in ("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "off", "ownrules", "done", "knownbridge")}
+    configs = {key: CFG for key in ("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "off", "ownrules", "done", "knownbridge")}
     configs["bridge"] = CFG.replace("netmode=router", "netmode=bridge")
     configs["ap"] = CFG
     with SessionLocal() as db:
@@ -250,6 +250,15 @@ def main():
     assert bulk.tick(start + timedelta(days=1, minutes=14))["done"] == 1 and status("l") == "done"
     assert bulk.tick(start + timedelta(days=1, minutes=41))["started"] == 1 and status("k") == "verifying"
     assert bulk.tick(start + timedelta(days=1, minutes=45))["done"] == 1 and status("k") == "done"
+
+    # A backup that is the bare system.cfg, not an archive (airOS 6.2, 2026-11-03, it stopped 423 CPEs): that CPE is skipped, the others go on.
+    fake.devices[ext("m")]["backups"] = [("b0-m", "2026-10-01T03:00:00Z", CFG.encode())]
+    assert request(["m", "n"], start).json()["queued"] == 2
+    stats = bulk.tick(start + timedelta(days=1, minutes=50))
+    assert status("m") == "skipped" and status("n") == "scheduled" and stats["failed"] == 0 and stats["stopped"] == 0, stats
+    assert fake.devices[ext("m")]["applied"] == []
+    assert bulk.tick(start + timedelta(days=1, minutes=51))["started"] == 1 and status("n") == "verifying"
+    assert bulk.tick(start + timedelta(days=1, minutes=55))["done"] == 1 and status("n") == "done"
 
     # An access point is never scheduled, and one already scheduled is skipped untouched at its turn.
     assert [r["reason"] for r in request(["ap"], start).json()["skipped"]] == ["not_cpe"]

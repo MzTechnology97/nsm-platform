@@ -303,7 +303,12 @@ def edit_config(text: str, networks: list[str], services=DEFAULT_SERVICES) -> st
 
 
 def _system_cfg(data: bytes) -> str:
-    with tarfile.open(fileobj=io.BytesIO(data), mode="r:*") as tar:
+    try:
+        tar = tarfile.open(fileobj=io.BytesIO(data), mode="r:*")
+    except tarfile.ReadError:
+        # airOS 6.2 (2026-11-03): UISP keeps the bare system.cfg, not an archive, and NSM only edits archives.
+        raise UispFirewallError("backup_format", "Il backup UISP di questa CPE è il solo system.cfg, non un archivio (airOS 6.2): NSM non sa ancora modificarlo.") from None
+    with tar:
         member = next((m for m in tar.getmembers() if m.name.lstrip("./") == "system.cfg"), None)
         if member is None:
             raise UispFirewallError("not_airos", "Il backup UISP non contiene system.cfg: dispositivo non airOS.")
