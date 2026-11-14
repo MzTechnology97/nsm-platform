@@ -5791,7 +5791,8 @@
     "ZABBIX_HOST_LINKED": "Équipement lié à un hôte Zabbix existant",
     "ZABBIX_SETTINGS_CHANGED": "Paramètres Zabbix modifiés",
     "ZABBIX_SNMP_COMMUNITY_ENCRYPTED": "Communauté SNMP Zabbix chiffrée",
-    "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée"
+    "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée",
+    "UISP_ACL_CHANGED": "Règles ACL communes airOS modifiées"
   },
   "eventSources": {
     "portal": "interface",
