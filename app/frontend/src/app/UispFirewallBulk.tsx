@@ -9,14 +9,14 @@ import { usePaging } from "../lib/paging";
 import { Pager } from "./Pager";
 
 interface Row { id: string; name: string; customer: string | null }
-interface Candidate extends Row { netmode: string | null }
+interface Candidate extends Row { netmode: string | null; outdated: boolean; services: string[] }
 interface Problem extends Row { status: string; error: string | null; batch: string }
 interface Batch { batch: string; at: string; hours: number; by: string | null; services: string[]; counts: Record<string, number> }
 interface Fleet {
   candidates: Candidate[];
   problems: Problem[];
   batches: Batch[];
-  counts: { candidate: number; applied: number; active: number; bridge: number; own_rules: number };
+  counts: { candidate: number; outdated: number; applied: number; active: number; bridge: number; own_rules: number };
   services: string[];
   default_services: string[];
   max_bulk: number;
@@ -74,8 +74,8 @@ export function UispFirewallBulkPanel({ customer, toolbar }: { customer?: string
     <section className="ui-panel ui-admin-section">
       <p className="ui-muted">{t("uispFirewallBulk.hint")}</p>
       <div className="ui-metrics">
-        {(["candidate", "applied", "active", "own_rules", "bridge"] as const).map((name) => (
-          <div key={name} className={`ui-metric${name === "candidate" && data.counts.candidate > 0 ? " ui-metric-warning" : ""}`}>
+        {(["candidate", "outdated", "applied", "active", "own_rules", "bridge"] as const).map((name) => (
+          <div key={name} className={`ui-metric${(name === "candidate" || name === "outdated") && data.counts[name] > 0 ? " ui-metric-warning" : ""}`}>
             <span>{t(`uispFirewallBulk.metrics.${name}`)}</span>
             <strong>{data.counts[name]}</strong>
           </div>
@@ -151,7 +151,14 @@ export function UispFirewallBulkPanel({ customer, toolbar }: { customer?: string
                       <td><input type="checkbox" checked={chosen.includes(row.id)} onChange={() => toggle(row.id)} aria-label={row.name} /></td>
                       <td><Link to="/devices/$deviceId/exposure" params={{ deviceId: row.id }}>{row.name}</Link></td>
                       <td>{row.customer ?? "—"}</td>
-                      <td>{row.netmode ?? t("uispFirewallBulk.modeUnknown")}</td>
+                      <td>
+                        {row.netmode ?? t("uispFirewallBulk.modeUnknown")}
+                        {row.outdated && (
+                          <small className="ui-block ui-text-warning">
+                            {t("uispFirewallBulk.outdated", { services: row.services.map((service) => t(`uispFirewall.service.${service}`)).join(", ") || "—" })}
+                          </small>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

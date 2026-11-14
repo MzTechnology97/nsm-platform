@@ -7771,10 +7771,10 @@
     }
   },
   "uispFirewallBulk": {
-    "hint": "CPE airOS senza regole attive, per quanto risulta a NSM. Scegli quali proteggere e quando: NSM applica le stesse regole della pagina del dispositivo, una CPE al minuto, dentro la finestra che si ripete ogni notte. La prima CPE va da sola e le altre aspettano che torni online. Se una non riesce o non torna online entro 15 minuti, NSM ferma quelle non ancora iniziate.",
-    "none": "Nessuna CPE airOS senza regole attive.",
-    "all_one": "Seleziona la CPE senza regole",
-    "all_other": "Seleziona tutte le {{count}} CPE senza regole",
+    "hint": "CPE airOS senza regole attive, per quanto risulta a NSM, e CPE con le regole NSM ma senza tutti i servizi predefiniti (dalla 0.49.348 anche la gestione web). Scegli quali proteggere e quando: NSM applica le stesse regole della pagina del dispositivo, una CPE al minuto, dentro la finestra che si ripete ogni notte. La prima CPE va da sola e le altre aspettano che torni online. Se una non riesce o non torna online entro 15 minuti, NSM ferma quelle non ancora iniziate.",
+    "none": "Nessuna CPE airOS senza regole attive o da completare.",
+    "all_one": "Seleziona la CPE",
+    "all_other": "Seleziona tutte le {{count}} CPE",
     "list_one": "Mostra {{count}} CPE",
     "list_other": "Mostra {{count}} CPE",
     "columns": {
@@ -7794,8 +7794,8 @@
     "schedule_other": "Programma {{count}} CPE",
     "queued_one": "{{count}} CPE programmata.",
     "queued_other": "{{count}} CPE programmate.",
-    "skipped_one": "{{count}} saltata perché non è più senza regole.",
-    "skipped_other": "{{count}} saltate perché non sono più senza regole.",
+    "skipped_one": "{{count}} saltata perché non è più senza regole o da completare.",
+    "skipped_other": "{{count}} saltate perché non sono più senza regole o da completare.",
     "cancel": "Annulla quelle non iniziate",
     "problems_one": "{{count}} CPE da controllare",
     "problems_other": "{{count}} CPE da controllare",
@@ -7821,11 +7821,13 @@
     },
     "metrics": {
       "candidate": "Senza regole",
+      "outdated": "Regole NSM da completare",
       "applied": "Regole applicate da NSM",
       "active": "In corso",
       "own_rules": "Con regole proprie",
       "bridge": "Bridge, non gestite"
     },
-    "requests": "Richieste programmate"
+    "requests": "Richieste programmate",
+    "outdated": "Protetta da NSM solo per: {{services}}"
   }
 }

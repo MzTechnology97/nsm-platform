@@ -17,7 +17,7 @@ source network that contains it; the same for the final ``DROP``), so nothing is
 replaces the previous NSM rules, so a change of the management networks is followed.
 
 The operator chooses the services (``SERVICES``: SSH, web management on ``httpd.port``/``httpd.https.port``, SNMP,
-discovery). A port that the CPE sends on to the customer is never touched, because a rule there would block the
+discovery); all four by default since 0.49.348 (operator request 2026-11-14: the web port too). A port that the CPE sends on to the customer is never touched, because a rule there would block the
 customer's own service instead of the CPE's: a port forward on that port (``iptables.sys.portfw.<n>.dport``), or the
 DMZ (``iptables.sys.dmz.<n>``) when the port is not in its exceptions (``except.<m>.port/proto``). Those ports are
 reported as not protected.
@@ -50,7 +50,7 @@ READ_KEY = "uisp_firewall_read"  # rules read from the newest UISP backup, for t
 COMMENT = "NSM-ACL"
 TCP, UDP = 6, 17
 SERVICES = ("ssh", "web", "snmp", "discovery")
-DEFAULT_SERVICES = ("ssh", "snmp", "discovery")
+DEFAULT_SERVICES = SERVICES
 _RULE = re.compile(r"^iptables\.(\d+)\.([A-Za-z0-9_.]+)=(.*)$")
 
 
@@ -469,7 +469,7 @@ def device_firewall(request: Request, device_id: uuid.UUID, services: str = ""):
         value = (device.inventory_data or {}).get(KEY)
         out = {"name": base.device_name(device), "state": value, "can_restore": bool(value and value.get("backup_before")),
                "can_configure": core.has_permission(user, "devices.write"), "plan": None, "error": None,
-               "services": list(SERVICES), "default_services": list((value or {}).get("services") or DEFAULT_SERVICES)}
+               "services": list(SERVICES), "default_services": list(DEFAULT_SERVICES)}
         try:
             chosen = parse_services(services) if services else tuple(out["default_services"])
             out["plan"] = preview(db, device, chosen)

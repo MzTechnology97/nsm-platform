@@ -84,7 +84,7 @@ def main():
             devices[key] = Device(customer_id=customer.id, vendor="ubiquiti", device_type="wireless_cpe", name=f"bk-{key}-{s}", status="online",
                                   external_device_id=ext, management_source="uisp")
         devices["ownrules"].inventory_data = {fw.READ_KEY: {"netmode": "router", "enabled": True, "rules": [{"protocol": 6, "src": None, "dport": 22, "target": "DROP"}]}}
-        devices["done"].inventory_data = {fw.KEY: {"status": "applied"}}
+        devices["done"].inventory_data = {fw.KEY: {"status": "applied", "services": list(fw.SERVICES)}}
         devices["knownbridge"].inventory_data = {fw.READ_KEY: {"netmode": "bridge", "enabled": False, "rules": []}}
         devices["ap"].device_type = "wireless_ap"
         db.add_all(list(devices.values()))
@@ -118,6 +118,17 @@ def main():
     assert {f"bk-{k}-{s}" for k in ("a", "b", "c", "d", "e", "f", "off", "bridge")} <= names
     assert not {f"bk-{k}-{s}" for k in ("ownrules", "done", "knownbridge", "ap")} & names
     assert page["counts"]["own_rules"] >= 1 and page["counts"]["applied"] >= 1 and page["counts"]["bridge"] >= 1
+    assert page["default_services"] == ["ssh", "web", "snmp", "discovery"]
+    with SessionLocal() as db:
+        done = db.get(Device, ids["done"])
+        older = dict(done.inventory_data)
+        done.inventory_data = {**older, fw.KEY: {**older[fw.KEY], "services": ["ssh", "snmp", "discovery"]}}
+        db.commit()
+    row = next(r for r in client.get(URL).json()["candidates"] if r["name"] == f"bk-done-{s}")
+    assert row["outdated"] is True and row["services"] == ["ssh", "snmp", "discovery"], "protected before the web port: offered again"
+    with SessionLocal() as db:
+        db.get(Device, ids["done"]).inventory_data = older
+        db.commit()
 
     now = utcnow()
     # Guards: management networks first (IPv6 only would lock out IPv4 management), the typed count, the time, the hours.
