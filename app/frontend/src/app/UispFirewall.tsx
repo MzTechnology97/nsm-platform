@@ -5,7 +5,9 @@ import { useTranslation } from "react-i18next";
 
 import { api, ApiError } from "../api/client";
 import { formatDateTime } from "../lib/format";
+import { type AclRule, AclRuleEditor } from "./AclRuleEditor";
 
+interface ManualRule { cmd: string; comment: string; enabled: boolean }
 interface Rule { service: string; kind?: string; protocol: number; port: number; src: string | null; target: "ACCEPT" | "DROP"; comment: string; because?: string }
 interface Plan {
   netmode: string;
@@ -20,6 +22,7 @@ interface Plan {
   dmz: boolean;
   nsm_rules: number;
   up_to_date: boolean;
+  manual: ManualRule[];
   backup: { id: string; timestamp: string | null };
 }
 interface FirewallState {
@@ -31,7 +34,7 @@ interface FirewallState {
   error: string | null;
   services: string[];
   common_rules: unknown[];
-  device_rules: unknown[];
+  device_rules: AclRule[];
   outdated: boolean;
 }
 
@@ -52,9 +55,16 @@ export function UispFirewallPanel({ id }: { id: string }) {
     placeholderData: (previous) => previous,
   });
   const [typed, setTyped] = useState("");
-  const done = () => { setTyped(""); void client.invalidateQueries({ queryKey: ["device", id] }); };
+  // The hand-written rules as edited here (null: as on the CPE); they go with the next apply.
+  const [manual, setManual] = useState<ManualRule[] | null>(null);
+  const original = query.data?.plan?.manual ?? [];
+  const manualDirty = manual !== null && JSON.stringify(manual) !== JSON.stringify(original);
+  const done = () => { setTyped(""); setManual(null); void client.invalidateQueries({ queryKey: ["device", id] }); };
   const apply = useMutation({
-    mutationFn: (confirmation: string) => api(`/api/ui/v1/devices/${id}/uisp/firewall`, { method: "POST", body: JSON.stringify({ confirmation }) }),
+    mutationFn: (confirmation: string) => api(`/api/ui/v1/devices/${id}/uisp/firewall`, {
+      method: "POST",
+      body: JSON.stringify({ confirmation, ...(manualDirty ? { manual, manual_seen: original.map((rule) => rule.cmd) } : {}) }),
+    }),
     onSuccess: done,
   });
   const restore = useMutation({
@@ -84,6 +94,7 @@ export function UispFirewallPanel({ id }: { id: string }) {
         <Link to="/acl">{t("acl.title")}</Link>
       </p>
       {data.outdated && <div className="ui-alert ui-alert-warning">{t("uispFirewall.outdated")}</div>}
+      <DeviceRules id={id} rules={data.device_rules} canEdit={data.can_configure} />
       {plan && (
         <>
           <p className="ui-muted">{t("uispFirewall.from", { mode: plan.netmode, lan: plan.lan.join(", ") || "—", nsm: plan.nsm_rules })}</p>
@@ -127,9 +138,13 @@ export function UispFirewallPanel({ id }: { id: string }) {
           )}
         </>
       )}
-      {data.can_configure && plan && !plan.blocker && plan.add.length > 0 && !plan.up_to_date && (
+      {plan && !plan.blocker && (
+        <ManualRules rules={manual ?? original} onChange={setManual} dirty={manualDirty} readOnly={!data.can_configure} />
+      )}
+      {data.can_configure && plan && !plan.blocker && ((plan.add.length > 0 && !plan.up_to_date) || manualDirty) && (
         <form className="ui-admin-form ui-admin-stack" onSubmit={submit}>
           <div className="ui-alert ui-alert-warning">{t("uispFirewall.reboot")}</div>
+          {manualDirty && <p>{t("acl.manual.withApply")}</p>}
           <label>
             <span>{t("uispFirewall.confirm", { name: data.name })}</span>
             <input value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" />
@@ -150,5 +165,82 @@ export function UispFirewallPanel({ id }: { id: string }) {
         </div>
       )}
     </section>
+  );
+}
+
+/** Extra rules of this CPE only, kept in NSM: saved here, written on the CPE with the next apply. */
+function DeviceRules({ id, rules, canEdit }: { id: string; rules: AclRule[]; canEdit: boolean }) {
+  const { t } = useTranslation();
+  const client = useQueryClient();
+  const [draft, setDraft] = useState<AclRule[] | null>(null);
+  const current = draft ?? rules;
+  const save = useMutation({
+    mutationFn: () => api<{ device_rules: AclRule[] }>(`/api/ui/v1/devices/${id}/uisp/firewall/rules`, { method: "PUT", body: JSON.stringify({ rules: current }) }),
+    onSuccess: () => {
+      setDraft(null);
+      void client.invalidateQueries({ queryKey: ["device", id] });
+      void client.invalidateQueries({ queryKey: ["security"] });
+    },
+  });
+  if (!canEdit && rules.length === 0) return null;
+  return (
+    <div className="ui-admin-stack">
+      <h3>{t("acl.device.title")}</h3>
+      <p className="ui-muted">{t("acl.device.hint")}</p>
+      <AclRuleEditor rules={current} onChange={setDraft} max={32} readOnly={!canEdit} />
+      {canEdit && draft !== null && (
+        <div className="ui-row-actions">
+          <button type="button" className="ui-button" disabled={save.isPending} onClick={() => save.mutate()}>{t("acl.device.save")}</button>
+          <button type="button" className="ui-button ui-button-ghost" onClick={() => setDraft(null)}>{t("customerForm.cancel")}</button>
+          {save.error && <small className="ui-backup-error">{message(save.error)}</small>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Rules written by hand on the CPE (not NSM's), in their order: changed, switched off or removed here, applied with the next apply. */
+function ManualRules({ rules, onChange, dirty, readOnly }: { rules: ManualRule[]; onChange: (rules: ManualRule[] | null) => void; dirty: boolean; readOnly: boolean }) {
+  const { t } = useTranslation();
+  if (rules.length === 0 && !dirty) return null;
+  const set = (index: number, patch: Partial<ManualRule>) => onChange(rules.map((rule, i) => (i === index ? { ...rule, ...patch } : rule)));
+  return (
+    <div className="ui-admin-stack">
+      <h3>{t("acl.manual.title")}</h3>
+      <p className="ui-muted">{t("acl.manual.hint")}</p>
+      {rules.length > 0 ? (
+        <div className="ui-data-wrap">
+          <table className="ui-data-table">
+            <thead>
+              <tr>{["enabled", "cmd", "comment"].map((key) => <th key={key}><span className="ui-th">{t(`acl.manual.columns.${key}`)}</span></th>)}<th /></tr>
+            </thead>
+            <tbody>
+              {rules.map((rule, index) => (
+                <tr key={index}>
+                  <td><input type="checkbox" checked={rule.enabled} disabled={readOnly} onChange={(event) => set(index, { enabled: event.target.checked })}
+                    aria-label={t("acl.manual.columns.enabled")} /></td>
+                  <td><input className="ui-mono" value={rule.cmd} readOnly={readOnly} size={48} onChange={(event) => set(index, { cmd: event.target.value })}
+                    aria-label={t("acl.manual.columns.cmd")} /></td>
+                  <td><input value={rule.comment} readOnly={readOnly} maxLength={32} onChange={(event) => set(index, { comment: event.target.value })}
+                    aria-label={t("acl.manual.columns.comment")} /></td>
+                  <td>{!readOnly && (
+                    <button type="button" className="ui-button ui-button-ghost ui-button-small" onClick={() => onChange(rules.filter((_, i) => i !== index))}>
+                      {t("acl.rules.remove")}
+                    </button>
+                  )}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="ui-muted">{t("acl.manual.allRemoved")}</p>
+      )}
+      {dirty && (
+        <div className="ui-row-actions">
+          <button type="button" className="ui-button ui-button-ghost" onClick={() => onChange(null)}>{t("acl.manual.reset")}</button>
+        </div>
+      )}
+    </div>
   );
 }

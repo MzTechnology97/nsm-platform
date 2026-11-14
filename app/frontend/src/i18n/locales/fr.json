@@ -5725,6 +5725,8 @@
     "SYSLOG_SETTINGS_CHANGED": "Paramètres syslog modifiés",
     "THREAT_LISTS_CONFIGURED": "Listes de menaces configurées",
     "THREAT_LIST_MATCH": "Adresse de l'opérateur trouvée dans une liste de menaces",
+    "UISP_ACL_CHANGED": "Règles ACL communes airOS modifiées",
+    "UISP_ACL_DEVICE_CHANGED": "Règles ACL d'un CPE modifiées",
     "UISP_AUTO_CUSTOMERS_CHANGED": "Import automatique UISP modifié",
     "UISP_AUTO_IMPORTED": "Équipements UISP importés automatiquement",
     "UISP_BACKUP_ARCHIVED": "Sauvegarde UISP archivée",
@@ -5791,8 +5793,7 @@
     "ZABBIX_HOST_LINKED": "Équipement lié à un hôte Zabbix existant",
     "ZABBIX_SETTINGS_CHANGED": "Paramètres Zabbix modifiés",
     "ZABBIX_SNMP_COMMUNITY_ENCRYPTED": "Communauté SNMP Zabbix chiffrée",
-    "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée",
-    "UISP_ACL_CHANGED": "Règles ACL communes airOS modifiées"
+    "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée"
   },
   "eventSources": {
     "portal": "interface",
@@ -7874,6 +7875,31 @@
     },
     "fleet": {
       "title": "Application aux CPE"
+    },
+    "device": {
+      "title": "Règles de ce CPE",
+      "hint": "En plus des règles communes, écrites avant elles. Les enregistrer ne change pas le CPE : elles arrivent avec la prochaine application.",
+      "save": "Enregistrer les règles du CPE"
+    },
+    "manual": {
+      "title": "Règles écrites à la main sur le CPE",
+      "hint": "Les règles qui ne viennent pas de NSM, lues dans la dernière sauvegarde UISP. Vous pouvez les modifier, les désactiver ou les retirer : les changements arrivent sur le CPE avec l'application ci-dessous. Les règles NSM restent en premier, donc les réseaux de gestion gardent leur accès ; une nouvelle règle qui bloque doit indiquer le port.",
+      "columns": {
+        "enabled": "Active",
+        "cmd": "Règle iptables",
+        "comment": "Commentaire"
+      },
+      "reset": "Annuler les changements",
+      "allRemoved": "Toutes les règles écrites à la main seront retirées.",
+      "withApply": "Cette application change aussi les règles écrites à la main."
+    },
+    "devices": {
+      "title": "CPE avec leurs propres règles",
+      "hint": "Les règles d'un seul CPE se modifient depuis son onglet UISP.",
+      "none": "Aucun CPE n'a ses propres règles.",
+      "rules_one": "{{count}} règle",
+      "rules_other": "{{count}} règles",
+      "toApply": "à appliquer"
     }
   }
 }
