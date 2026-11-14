@@ -1,7 +1,9 @@
 """Scheduled firewall ACL on many airOS CPEs through UISP (ACCESS-01, operator request 2026-10-30).
 
 From *Sicurezza → Regole ACL* an operator chooses the CPEs without active rules, or with NSM's rules older than the
-current common rules, networks or device rules (``outdated``, from the signature of ``uisp_firewall``), the start time and the hours of each night's window (the count typed to confirm). Scheduling is the only confirmation: at that time the worker
+current common rules, networks or device rules (``outdated``, from the signature of ``uisp_firewall``), the start time and the hours.
+A request keeps the services of the common rules at the time it was scheduled (requests made before 0.49.349 keep theirs):
+changing the common services never widens what a scheduled request does of each night's window (the count typed to confirm). Scheduling is the only confirmation: at that time the worker
 applies the same change as the device page (``uisp_firewall.configure``: fresh backup as the restore point, edit, apply,
 reboot), with the scheduling operator as actor. The window repeats every 24 hours until no CPE is left.
 
@@ -273,7 +275,7 @@ def _start(db, device: Device, rows: list[Device], now, stats: dict) -> bool:
         user = db.get(User, uuid.UUID(value["user_id"])) if value.get("user_id") else None
         # Saved before ``configure``, which commits it with its own state: a crash after the apply still gets the check.
         _save(device, status="verifying", applied_at=now.isoformat(), error=None)
-        fw.configure(db, user, device, "", bulk=True)
+        fw.configure(db, user, device, "", bulk=True, services=fw.parse_services(value["services"]) if value.get("services") else None)
         stats["started"] += 1
     except (InputError, tarfile.TarError, ValueError) as exc:
         db.rollback()
