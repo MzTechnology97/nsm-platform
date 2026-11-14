@@ -5791,7 +5791,9 @@
     "ZABBIX_HOST_LINKED": "Device linked to an existing Zabbix host",
     "ZABBIX_SETTINGS_CHANGED": "Zabbix settings changed",
     "ZABBIX_SNMP_COMMUNITY_ENCRYPTED": "Zabbix SNMP community encrypted",
-    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested"
+    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested",
+    "UISP_ACL_CHANGED": "Common airOS ACL rules changed",
+    "UISP_ACL_DEVICE_CHANGED": "ACL rules of a CPE changed"
   },
   "eventSources": {
     "portal": "interface",
