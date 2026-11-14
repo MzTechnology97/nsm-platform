@@ -153,6 +153,10 @@ def main():
     assert result["queued"] == 5 and [r["reason"] for r in result["skipped"]] == ["own_rules"], result
     batch = result["batch"]
     assert status("ownrules") is None
+    # The request keeps the services it was scheduled with, even if the common rules change before it runs.
+    with SessionLocal() as db:
+        fw.save_settings(db, None, {"services": list(fw.SERVICES), "rules": []})
+        db.commit()
 
     # Outside the window nothing happens: before the start, and in the same day after the window.
     assert bulk.tick(now)["started"] == 0
@@ -165,6 +169,8 @@ def main():
         device = db.get(Device, ids["a"])
         assert device.inventory_data[fw.KEY]["status"] == "applied" and device.inventory_data[fw.KEY]["services"] == ["ssh"]
         assert device.inventory_data[fw.KEY]["by"] == f"ci-bk-{s}", "the scheduling operator is the actor"
+        fw.save_settings(db, None, {"services": ["ssh"], "rules": []})
+        db.commit()
     assert bulk.tick(start + timedelta(minutes=1))["started"] == 0 and status("b") == "scheduled", "too early to know it rebooted"
     assert bulk.tick(start + timedelta(minutes=2))["started"] == 0
     fake.offline.add(ext("a"))

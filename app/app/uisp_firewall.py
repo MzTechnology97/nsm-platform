@@ -540,12 +540,13 @@ def upload_and_apply(connection, device: Device, data: bytes, filename: str) -> 
     return uploaded["id"]
 
 
-def configure(db, user, device: Device, confirmation: str, bulk: bool = False) -> dict:
+def configure(db, user, device: Device, confirmation: str, bulk: bool = False, services=None) -> dict:
+    """``services``: those of a scheduled request (chosen when it was scheduled); otherwise the common rules' ones."""
     if not bulk and (confirmation or "").strip() != base.device_name(device):
         raise UispFirewallError("confirmation", f"Per confermare scrivi esattamente il nome del dispositivo: {base.device_name(device)}")
     networks = _networks(db)
     settings = load_settings(db)
-    services, common, extra = settings["services"], settings["rules"], device_rules(device)
+    services, common, extra = tuple(services or settings["services"]), settings["rules"], device_rules(device)
     connection = base._connection(db, device)
     before, original = restore_point(connection, device)
     planned = plan(_system_cfg(original), networks, services, common, extra)
