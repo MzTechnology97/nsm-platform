@@ -64,9 +64,12 @@ iptables.sys.dmz.1.except.1.status=enabled
 """
 
 
+# The services of the tests written before the web port joined the defaults (0.49.348).
+CORE = ("ssh", "snmp", "discovery")
+
 def main():
     # Plan on the configuration: NSM ACCEPTs (management + LAN) for SSH on sshd.port, SNMP and discovery, then DROPs.
-    planned = fw.plan(CFG, MGMT)
+    planned = fw.plan(CFG, MGMT, CORE)
     assert planned["up_to_date"] is False
     assert planned["netmode"] == "router" and planned["lan"] == ["192.0.2.0/24"] and planned["blocker"] is None
     assert [p["port"] for p in planned["ports"]] == [2222, 161, 10001]
@@ -77,12 +80,12 @@ def main():
 
     # An operator rule that already accepts the same prefix on the same port is not duplicated.
     cfg22 = CFG.replace("sshd.port=2222", "sshd.port=22")
-    planned22 = fw.plan(cfg22, MGMT)
+    planned22 = fw.plan(cfg22, MGMT, CORE)
     assert ("ACCEPT", 6, 22, "203.0.113.10/32") not in {(r["target"], r["protocol"], r["port"], r["src"]) for r in planned22["add"]}
     assert any(s["src"] == "203.0.113.10/32" and s["because"] == "operator-ssh" for s in planned22["skipped"])
 
     # The edited file: NSM ACCEPTs first, the operator's rules in their order, NSM DROPs last, firewall on; renumbered.
-    edited = fw.edit_config(cfg22, MGMT)
+    edited = fw.edit_config(cfg22, MGMT, CORE)
     rules = fw.rules_of(edited)
     comments = [r["fields"]["comment"] for r in rules]
     first_operator = comments.index("operator-ssh")
@@ -93,8 +96,8 @@ def main():
     assert "iptables.sys.fw.status=enabled" in edited.splitlines() and "-A FIREWALL --protocol 6 --src 192.0.2.0/24 --dport 22 -j ACCEPT" in edited
     assert "netmode=router" in edited and "resolv.host.1.name=TEST CPE" in edited, "other lines unchanged"
     # Applying again replaces NSM's own rules: same result, nothing duplicated.
-    assert fw.edit_config(edited, MGMT) == edited
-    smaller = fw.rules_of(fw.edit_config(edited, ["198.51.100.0/24"]))
+    assert fw.edit_config(edited, MGMT, CORE) == edited
+    smaller = fw.rules_of(fw.edit_config(edited, ["198.51.100.0/24"], CORE))
     assert not any("203.0.113.10/32" in r["fields"]["cmd"] and r["fields"]["comment"].startswith("NSM-ACL") for r in smaller), "follows the list"
 
     # Exposure check: which networks the rules admit per port (NSM ACCEPTs, the operator's, then the DROPs).
@@ -124,13 +127,14 @@ def main():
     outside = checked("probe")
     assert all(f["state"] == "exposed" for f in outside.values()), "seen open from an external probe: the rules do not stop it"
 
-    wide = fw.plan(CFG, ["203.0.113.0/24", "192.0.2.0/23"])
+    wide = fw.plan(CFG, ["203.0.113.0/24", "192.0.2.0/23"], CORE)
     assert not any(r["src"] == "192.0.2.0/24" for r in wide["add"]), "the LAN inside a management network adds no rule"
     assert {r["src"] for r in wide["add"] if r["target"] == "ACCEPT"} == {"203.0.113.0/24", "192.0.2.0/23"}
 
-    # Web management on httpd.port / httpd.https.port, only when chosen.
+    # Web management on httpd.port / httpd.https.port: a default service since 0.49.348, and it can be left out.
     web_cfg = CFG + WEB
-    assert [p["port"] for p in fw.plan(web_cfg, MGMT)["ports"]] == [2222, 161, 10001], "web is not in the default services"
+    assert [p["port"] for p in fw.plan(web_cfg, MGMT)["ports"]] == [2222, 20080, 20443, 161, 10001], "web is a default service"
+    assert [p["port"] for p in fw.plan(web_cfg, MGMT, ("ssh", "snmp", "discovery"))["ports"]] == [2222, 161, 10001]
     with_web = fw.plan(web_cfg, MGMT, ("ssh", "web"))
     assert [p["port"] for p in with_web["ports"]] == [2222, 20080, 20443]
     assert ("DROP", 6, 20443, None) in {(r["target"], r["protocol"], r["port"], r["src"]) for r in with_web["add"]}
@@ -150,14 +154,14 @@ def main():
     assert fw.plan(fwd.replace("portfw.status=enabled", "portfw.status=disabled"), MGMT, ("web",))["not_protected"] == [], "forwards off"
     # DMZ on: every port goes to the DMZ host except the exceptions (here SSH on 2222/TCP).
     dmz = CFG + DMZ
-    in_dmz = fw.plan(dmz, MGMT)
+    in_dmz = fw.plan(dmz, MGMT, CORE)
     assert in_dmz["dmz"] is True and [p["port"] for p in in_dmz["ports"]] == [2222]
     assert sorted(n["port"] for n in in_dmz["not_protected"]) == [161, 10001]
-    assert fw.edit_config(dmz, MGMT).count("--dport 161") == 0, "nothing written on a port that goes to the DMZ host"
+    assert fw.edit_config(dmz, MGMT, CORE).count("--dport 161") == 0, "nothing written on a port that goes to the DMZ host"
 
-    bridge = fw.plan(CFG.replace("netmode=router", "netmode=bridge"), MGMT)
+    bridge = fw.plan(CFG.replace("netmode=router", "netmode=bridge"), MGMT, CORE)
     assert bridge["blocker"] and "bridge" in bridge["blocker"]
-    assert fw.plan(CFG, [])["blocker"], "no management networks saved: nothing is applied"
+    assert fw.plan(CFG, [], CORE)["blocker"], "no management networks saved: nothing is applied"
 
     # Through UISP, from the device page.
     s = uuid.uuid4().hex[:6]
@@ -199,22 +203,22 @@ def main():
         management_access.save(db, None, {"networks": "\n".join(MGMT), "community": "public", "ntp_servers": "ntp1.inrim.it", "timezone": "Europe/Rome"})
         db.commit()
     page = client.get(url("router")).json()
-    assert page["plan"]["blocker"] is None and len(page["plan"]["add"]) == 12, len(page["plan"]["add"])  # 3 ports × 3 IPv4 sources + 3 DROPs
+    assert page["plan"]["blocker"] is None and len(page["plan"]["add"]) == 20, len(page["plan"]["add"])  # 5 ports (SSH, HTTP, HTTPS, SNMP, discovery) × 3 IPv4 sources + 5 DROPs
     assert client.post(url("router"), json={"confirmation": "wrong"}).json()["detail"]["code"] == "confirmation"
     assert client.post(url("bridge"), json={"confirmation": f"cpe-bridge-{s}"}).json()["detail"]["code"] == "blocked"
     assert fake.devices[exts["bridge"]]["applied"] == [], "bridge mode: nothing applied"
 
     done = client.post(url("router"), json={"confirmation": f"cpe-router-{s}"}).json()
-    assert done["state"]["status"] == "applied" and done["state"]["rules_added"] == 12, done
+    assert done["state"]["status"] == "applied" and done["state"]["rules_added"] == 20, done
     dev = fake.devices[exts["router"]]
     applied_cfg = cfg_of(next(b[2] for b in dev["backups"] if b[0] == dev["applied"][-1]))
-    assert "iptables.sys.fw.status=enabled" in applied_cfg and applied_cfg.count("NSM-ACL") == 12
+    assert "iptables.sys.fw.status=enabled" in applied_cfg and applied_cfg.count("NSM-ACL") == 20
     assert "-A FIREWALL --protocol 17 --dport 10001 -j DROP" in applied_cfg and "operator-web" in applied_cfg
     assert client.get(url("router") + "?services=web").json()["plan"]["services"] == ["web"]
     assert "servizio" in client.get(url("router") + "?services=x").json()["error"]
     page = client.get(url("router")).json()
-    assert page["plan"]["nsm_rules"] == 12 and page["plan"]["up_to_date"] is True, "applied: nothing more to do, no useless reboot"
-    assert fw.plan(applied_cfg, MGMT[:1])["up_to_date"] is False, "a changed list needs a new apply"
+    assert page["plan"]["nsm_rules"] == 20 and page["plan"]["up_to_date"] is True, "applied: nothing more to do, no useless reboot"
+    assert fw.plan(applied_cfg, MGMT[:1], CORE)["up_to_date"] is False, "a changed list needs a new apply"
 
     # The exposure check reads those rules from the newest UISP backup, downloading it only when UISP has a newer one.
     downloads = []

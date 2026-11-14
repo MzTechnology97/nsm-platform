@@ -1,7 +1,7 @@
 """Scheduled firewall ACL on many airOS CPEs through UISP (ACCESS-01, operator request 2026-10-30).
 
-From the *Esposizione* page an operator chooses the CPEs without active rules, the services, the start time and the
-hours of each night's window (the count typed to confirm). Scheduling is the only confirmation: at that time the worker
+From the *Esposizione* page an operator chooses the CPEs without active rules, or protected by NSM without every default
+service (``outdated``: the web port was added to the defaults in 0.49.348), the services, the start time and the hours of each night's window (the count typed to confirm). Scheduling is the only confirmation: at that time the worker
 applies the same change as the device page (``uisp_firewall.configure``: fresh backup as the restore point, edit, apply,
 reboot), with the scheduling operator as actor. The window repeats every 24 hours until no CPE is left.
 
@@ -56,6 +56,7 @@ MAX_POWERED_OFF = 2
 ACTIVE = ("scheduled", "waiting", "verifying", "powered_off")
 PROBLEMS = ("failed", "stopped", "skipped", "powered_off")
 SKIP_CODES = ("blocked", "not_airos", "up_to_date", "backup_format")
+SCHEDULABLE = ("candidate", "outdated")
 RECENT = timedelta(days=14)
 
 
@@ -77,14 +78,18 @@ def in_window(value: dict, now) -> bool:
 
 
 def classify(device: Device) -> str:
-    """``not_cpe``, ``applied``, ``active``, ``bridge``, ``own_rules`` or ``candidate`` (no active rules as far as NSM knows)."""
+    """``not_cpe``, ``applied``, ``outdated``, ``active``, ``bridge``, ``own_rules`` or ``candidate`` (no active rules as far as NSM knows).
+
+    ``outdated``: NSM's rules are on the CPE but leave out a default service; it can be scheduled again like a candidate.
+    """
     data = device.inventory_data or {}
     if device.device_type != CPE_TYPE:
         return "not_cpe"
     if schedule_of(device).get("status") in ACTIVE:
         return "active"
-    if (data.get(fw.KEY) or {}).get("status") == "applied":
-        return "applied"
+    applied = data.get(fw.KEY) or {}
+    if applied.get("status") == "applied":
+        return "applied" if set(fw.DEFAULT_SERVICES) <= set(applied.get("services") or ()) else "outdated"
     read = data.get(fw.READ_KEY) or {}
     if read.get("netmode") and read.get("netmode") != "router":
         return "bridge"
@@ -134,7 +139,7 @@ def _gone(db, device: Device) -> bool:
 
 
 def queue(db, user, devices: list[Device], at_value, hours, services) -> dict:
-    """Schedule the CPEs that have no active rules; audited. The caller commits."""
+    """Schedule the CPEs that have no active rules, or NSM's without a default service; audited. The caller commits."""
     now = utcnow()
     at = _parse(at_value)
     if at is None:
@@ -154,7 +159,7 @@ def queue(db, user, devices: list[Device], at_value, hours, services) -> dict:
     queued, skipped = 0, []
     for device in devices:
         kind = classify(device)
-        if device.vendor != "ubiquiti" or not device.external_device_id or kind != "candidate":
+        if device.vendor != "ubiquiti" or not device.external_device_id or kind not in SCHEDULABLE:
             skipped.append({"id": str(device.id), "name": device.name, "reason": kind})
             continue
         device.inventory_data = {**(device.inventory_data or {}), KEY: {
@@ -325,14 +330,15 @@ def fleet_firewall(request: Request, customer: str = ""):
             except ValueError:
                 raise HTTPException(422, {"code": "customer", "message": "Cliente non valido."}) from None
         rows = list(db.execute(query.order_by(Device.name)).tuples())
-        counts = {"candidate": 0, "applied": 0, "active": 0, "bridge": 0, "own_rules": 0, "not_cpe": 0}
+        counts = {"candidate": 0, "outdated": 0, "applied": 0, "active": 0, "bridge": 0, "own_rules": 0, "not_cpe": 0}
         candidates, problems = [], []
         for device, name in rows:
             kind = classify(device)
             counts[kind] += 1
             common = {"id": str(device.id), "name": device.name, "customer": name}
-            if kind == "candidate":
-                candidates.append({**common, "netmode": ((device.inventory_data or {}).get(fw.READ_KEY) or {}).get("netmode")})
+            if kind in SCHEDULABLE:
+                candidates.append({**common, "netmode": ((device.inventory_data or {}).get(fw.READ_KEY) or {}).get("netmode"), "outdated": kind == "outdated",
+                                   "services": ((device.inventory_data or {}).get(fw.KEY) or {}).get("services") or []})
             value = schedule_of(device)
             if value.get("status") in PROBLEMS:
                 problems.append({**common, "status": value["status"], "error": value.get("error"), "batch": value.get("batch")})

@@ -7771,10 +7771,10 @@
     }
   },
   "uispFirewallBulk": {
-    "hint": "airOS CPEs without active rules, as far as NSM knows. Choose which to protect and when: NSM applies the same rules as the device page, one CPE per minute, inside a window that repeats every night. The first CPE goes alone and the others wait until it is back online. If one fails or is not back online within 15 minutes, NSM stops the ones not started yet.",
-    "none": "No airOS CPE without active rules.",
-    "all_one": "Select the CPE without rules",
-    "all_other": "Select all {{count}} CPEs without rules",
+    "hint": "airOS CPEs without active rules, as far as NSM knows, and CPEs with NSM's rules but without every default service (the web management too since 0.49.348). Choose which to protect and when: NSM applies the same rules as the device page, one CPE a minute, inside a window that repeats every night. The first CPE goes alone and the others wait until it is back online. If one fails or is not back online within 15 minutes, NSM stops those not started yet.",
+    "none": "No airOS CPE without active rules or to complete.",
+    "all_one": "Select the CPE",
+    "all_other": "Select all {{count}} CPEs",
     "list_one": "Show {{count}} CPE",
     "list_other": "Show {{count}} CPEs",
     "columns": {
@@ -7794,8 +7794,8 @@
     "schedule_other": "Schedule {{count}} CPEs",
     "queued_one": "{{count}} CPE scheduled.",
     "queued_other": "{{count}} CPEs scheduled.",
-    "skipped_one": "{{count}} skipped because it is no longer without rules.",
-    "skipped_other": "{{count}} skipped because they are no longer without rules.",
+    "skipped_one": "{{count}} skipped because it is no longer without rules or to complete.",
+    "skipped_other": "{{count}} skipped because they are no longer without rules or to complete.",
     "cancel": "Cancel the ones not started",
     "problems_one": "{{count}} CPE to check",
     "problems_other": "{{count}} CPEs to check",
@@ -7821,11 +7821,13 @@
     },
     "metrics": {
       "candidate": "Without rules",
+      "outdated": "NSM rules to complete",
       "applied": "Rules applied by NSM",
       "active": "In progress",
       "own_rules": "With their own rules",
       "bridge": "Bridge, not handled"
     },
-    "requests": "Scheduled requests"
+    "requests": "Scheduled requests",
+    "outdated": "Protected by NSM only for: {{services}}"
   }
 }

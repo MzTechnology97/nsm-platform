@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.348 — 2026-11-14
+
+Security
+- **The airOS firewall rules now protect the web management of the CPE too.** HTTP and HTTPS (the ports set in airOS) join SSH, SNMP and discovery among the default services, so only the management networks and the CPE's LAN reach them. CPEs that already have NSM's rules without the web port are offered again for the nightly application, marked *Regole NSM da completare*. Nothing changes on a CPE until it is scheduled.
 ## 0.49.347 — 2026-11-03
 
 Scheduled airOS firewall: a CPE whose UISP backup is not an archive is skipped, not a stop

@@ -7771,10 +7771,10 @@
     }
   },
   "uispFirewallBulk": {
-    "hint": "CPE airOS sin reglas activas, según le consta a NSM. Elija cuáles proteger y cuándo: NSM aplica las mismas reglas que la página del equipo, una CPE por minuto, dentro de una ventana que se repite cada noche. La primera CPE va sola y las demás esperan a que vuelva a estar en línea. Si una falla o no vuelve en línea en 15 minutos, NSM detiene las que no han empezado.",
-    "none": "Ninguna CPE airOS sin reglas activas.",
-    "all_one": "Seleccionar la CPE sin reglas",
-    "all_other": "Seleccionar las {{count}} CPE sin reglas",
+    "hint": "CPE airOS sin reglas activas, según lo que sabe NSM, y CPE con las reglas de NSM pero sin todos los servicios predeterminados (desde la 0.49.348 también la gestión web). Elige cuáles proteger y cuándo: NSM aplica las mismas reglas que la página del dispositivo, un CPE por minuto, dentro de una ventana que se repite cada noche. El primer CPE va solo y los demás esperan a que vuelva en línea. Si uno falla o no vuelve en línea en 15 minutos, NSM detiene los que aún no han empezado.",
+    "none": "Ningún CPE airOS sin reglas activas o por completar.",
+    "all_one": "Seleccionar el CPE",
+    "all_other": "Seleccionar los {{count}} CPE",
     "list_one": "Mostrar {{count}} CPE",
     "list_other": "Mostrar {{count}} CPE",
     "columns": {
@@ -7794,8 +7794,8 @@
     "schedule_other": "Programar {{count}} CPE",
     "queued_one": "{{count}} CPE programada.",
     "queued_other": "{{count}} CPE programadas.",
-    "skipped_one": "{{count}} omitida porque ya no está sin reglas.",
-    "skipped_other": "{{count}} omitidas porque ya no están sin reglas.",
+    "skipped_one": "{{count}} omitido porque ya no está sin reglas o por completar.",
+    "skipped_other": "{{count}} omitidos porque ya no están sin reglas o por completar.",
     "cancel": "Cancelar las no iniciadas",
     "problems_one": "{{count}} CPE por revisar",
     "problems_other": "{{count}} CPE por revisar",
@@ -7821,11 +7821,13 @@
     },
     "metrics": {
       "candidate": "Sin reglas",
+      "outdated": "Reglas NSM por completar",
       "applied": "Reglas aplicadas por NSM",
       "active": "En curso",
       "own_rules": "Con reglas propias",
       "bridge": "Bridge, no gestionadas"
     },
-    "requests": "Solicitudes programadas"
+    "requests": "Solicitudes programadas",
+    "outdated": "Protegido por NSM solo para: {{services}}"
   }
 }

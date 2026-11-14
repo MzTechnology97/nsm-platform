@@ -7771,10 +7771,10 @@
     }
   },
   "uispFirewallBulk": {
-    "hint": "CPE airOS sans règles actives, à la connaissance de NSM. Choisissez lesquels protéger et quand : NSM applique les mêmes règles que la page de l'équipement, un CPE par minute, dans une fenêtre qui se répète chaque nuit. Le premier CPE part seul et les autres attendent qu'il soit de nouveau en ligne. Si l'un échoue ou n'est pas de nouveau en ligne sous 15 minutes, NSM arrête ceux qui n'ont pas commencé.",
-    "none": "Aucun CPE airOS sans règles actives.",
-    "all_one": "Sélectionner le CPE sans règles",
-    "all_other": "Sélectionner les {{count}} CPE sans règles",
+    "hint": "CPE airOS sans règles actives, d'après NSM, et CPE avec les règles NSM mais sans tous les services par défaut (la gestion web aussi depuis la 0.49.348). Choisissez lesquels protéger et quand : NSM applique les mêmes règles que la page de l'équipement, un CPE par minute, dans une fenêtre qui se répète chaque nuit. Le premier CPE passe seul et les autres attendent qu'il revienne en ligne. Si l'un échoue ou ne revient pas en ligne en 15 minutes, NSM arrête ceux qui n'ont pas encore commencé.",
+    "none": "Aucun CPE airOS sans règles actives ou à compléter.",
+    "all_one": "Sélectionner le CPE",
+    "all_other": "Sélectionner les {{count}} CPE",
     "list_one": "Afficher {{count}} CPE",
     "list_other": "Afficher {{count}} CPE",
     "columns": {
@@ -7794,8 +7794,8 @@
     "schedule_other": "Programmer {{count}} CPE",
     "queued_one": "{{count}} CPE programmé.",
     "queued_other": "{{count}} CPE programmés.",
-    "skipped_one": "{{count}} ignoré car il n'est plus sans règles.",
-    "skipped_other": "{{count}} ignorés car ils ne sont plus sans règles.",
+    "skipped_one": "{{count}} ignoré car il n'est plus sans règles ou à compléter.",
+    "skipped_other": "{{count}} ignorés car ils ne sont plus sans règles ou à compléter.",
     "cancel": "Annuler ceux non commencés",
     "problems_one": "{{count}} CPE à vérifier",
     "problems_other": "{{count}} CPE à vérifier",
@@ -7821,11 +7821,13 @@
     },
     "metrics": {
       "candidate": "Sans règles",
+      "outdated": "Règles NSM à compléter",
       "applied": "Règles appliquées par NSM",
       "active": "En cours",
       "own_rules": "Avec leurs propres règles",
       "bridge": "Bridge, non gérés"
     },
-    "requests": "Demandes programmées"
+    "requests": "Demandes programmées",
+    "outdated": "Protégé par NSM seulement pour : {{services}}"
   }
 }
