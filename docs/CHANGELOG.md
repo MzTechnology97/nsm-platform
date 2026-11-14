@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.350 — 2026-11-14
+
+Security
+- **Each CPE can have rules of its own.** They are edited from the device's *UISP* tab, written before the common rules, and listed on the *Regole ACL* page.
+- **The rules written by hand on a CPE can be changed from its *UISP* tab.** They can be edited, switched off or removed, and the changes go on the CPE with the next application. NSM checks that the CPE still has the rules the operator saw. A new rule that blocks must name a port, because a block on every port could cut the CPE off UISP.
 ## 0.49.349 — 2026-11-14
 
 Security
