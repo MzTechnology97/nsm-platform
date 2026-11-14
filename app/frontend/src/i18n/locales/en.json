@@ -5725,6 +5725,8 @@
     "SYSLOG_SETTINGS_CHANGED": "Syslog settings changed",
     "THREAT_LISTS_CONFIGURED": "Threat lists configured",
     "THREAT_LIST_MATCH": "Operator address found in a threat list",
+    "UISP_ACL_CHANGED": "Common airOS ACL rules changed",
+    "UISP_ACL_DEVICE_CHANGED": "ACL rules of a CPE changed",
     "UISP_AUTO_CUSTOMERS_CHANGED": "UISP automatic import changed",
     "UISP_AUTO_IMPORTED": "UISP devices imported automatically",
     "UISP_BACKUP_ARCHIVED": "UISP backup archived",
@@ -5791,9 +5793,7 @@
     "ZABBIX_HOST_LINKED": "Device linked to an existing Zabbix host",
     "ZABBIX_SETTINGS_CHANGED": "Zabbix settings changed",
     "ZABBIX_SNMP_COMMUNITY_ENCRYPTED": "Zabbix SNMP community encrypted",
-    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested",
-    "UISP_ACL_CHANGED": "Common airOS ACL rules changed",
-    "UISP_ACL_DEVICE_CHANGED": "ACL rules of a CPE changed"
+    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested"
   },
   "eventSources": {
     "portal": "interface",
