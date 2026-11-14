@@ -22,6 +22,12 @@ customer's own service instead of the CPE's: a port forward on that port (``ipta
 DMZ (``iptables.sys.dmz.<n>``) when the port is not in its exceptions (``except.<m>.port/proto``). Those ports are
 reported as not protected.
 
+Common rules (0.49.349, *Sicurezza → Regole ACL*): the services above and extra rules of the operator (protocol, port,
+IPv4 source or everybody, accept or drop), kept in NSM and written on every CPE after NSM's ACCEPTs and before the
+operator's own rules; comment ``NSM-ACL comune …``. Extra rules of one CPE (``DEVICE_RULES_KEY``, comment
+``NSM-ACL dispositivo …``) go before the common ones. Like NSM's other rules they are never written on a forwarded port.
+Each apply stores a ``signature`` of networks, services and rules, so a CPE whose rules are older is ``outdated``.
+
 Like the syslog (``uisp_syslog``): UISP takes a fresh backup (the restore point), NSM edits ``system.cfg``, uploads
 and applies it — the CPE reboots — only when an operator asks from the device page and types the device name, or
 schedules many CPEs (``uisp_firewall_bulk``).
@@ -29,18 +35,22 @@ Bridge-mode CPEs (ebtables) are not handled yet.
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import ipaddress
+import json
 import re
 import tarfile
 import uuid
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from sqlalchemy import select
 
 from app import main as core
 from app import uisp_syslog as base
 from app.db import SessionLocal
 from app.input_errors import InputError
+from app.integration_models import ConnectorIntegration
 from app.models import Device, utcnow
 from app.ui_api import require_csrf, ui_user
 
@@ -52,6 +62,10 @@ TCP, UDP = 6, 17
 SERVICES = ("ssh", "web", "snmp", "discovery")
 DEFAULT_SERVICES = SERVICES
 _RULE = re.compile(r"^iptables\.(\d+)\.([A-Za-z0-9_.]+)=(.*)$")
+SETTINGS_PROVIDER = "uisp_acl"  # the common rules, in a connector row like the management networks
+DEVICE_RULES_KEY = "uisp_firewall_rules"
+MAX_RULES = 32
+_COMMENT_TEXT = re.compile(r"[^A-Za-z0-9 _.:/-]")
 
 
 class UispFirewallError(InputError, ValueError):
@@ -182,7 +196,7 @@ def _forward_reason(table: dict, protocol: int, port: int) -> str | None:
     return None
 
 
-def plan(text: str, networks: list[str], services=DEFAULT_SERVICES) -> dict:
+def plan(text: str, networks: list[str], services=DEFAULT_SERVICES, common=(), device=()) -> dict:
     """What NSM would change: the rules to add, the ones skipped because an operator rule already does it, blockers."""
     values = _values(text)
     netmode = values.get("netmode") or "unknown"
@@ -224,6 +238,23 @@ def plan(text: str, networks: list[str], services=DEFAULT_SERVICES) -> dict:
             skipped.append({**drop, "because": existing_drop.get("comment") or "DROP"})
         else:
             drops.append(drop)
+    custom = []
+    for kind, rules in (("dispositivo", device), ("comune", common)):
+        for rule in rules:
+            protocol = TCP if rule["protocol"] == "tcp" else UDP
+            entry = {"service": "custom", "kind": kind, "protocol": protocol, "port": rule["port"], "src": rule["src"] or None,
+                     "target": rule["action"].upper(), "comment": f"{COMMENT} {kind} {rule['comment']}".strip()}
+            reason = _forward_reason(table, protocol, rule["port"])
+            if reason:
+                not_protected.append({"service": "custom", "protocol": protocol, "port": rule["port"], "reason": reason, "comment": rule["comment"]})
+                continue
+            source = _network(entry["src"])
+            same = next((r for r in operator if r["enabled"] and not r["negated"] and r["protocol"] == protocol and r["dport"] == rule["port"]
+                         and r["target"] == entry["target"] and _network(r["src"]) == source), None)
+            if same:
+                skipped.append({**entry, "because": same.get("comment") or same.get("src") or entry["target"]})
+            else:
+                custom.append(entry)
     blocker = None
     if netmode != "router":
         blocker = "La CPE è in modalità bridge: il firewall airOS di questa modalità (ebtables) non è ancora gestito da NSM."
@@ -231,12 +262,12 @@ def plan(text: str, networks: list[str], services=DEFAULT_SERVICES) -> dict:
         blocker = "Salva prima le reti di gestione autorizzate (Amministrazione → Reti di gestione)."
     present = sorted(str(r["fields"].get("cmd") or "") for r in rules_of(text)
                      if str(r["fields"].get("comment") or "").startswith(COMMENT) and r["fields"].get("status") == "enabled")
-    wanted = sorted([_cmd(r["protocol"], r["port"], "ACCEPT", r["src"]) for r in accepts] + [_cmd(r["protocol"], r["port"], "DROP") for r in drops])
+    wanted = sorted(_cmd(r["protocol"], r["port"], r["target"], r["src"]) for r in accepts + custom + drops)
     # Already applied with these networks and the firewall on: nothing to do (applying again would only reboot the CPE).
     up_to_date = bool(wanted) and present == wanted and values.get("iptables.sys.fw.status") == "enabled"
     return {"netmode": netmode, "lan": lans, "ports": [{"service": n, "protocol": p, "port": port} for n, p, port in ports], "up_to_date": up_to_date,
             "operator_rules": [{k: r[k] for k in ("comment", "protocol", "src", "dport", "target", "enabled")} for r in operator],
-            "add": accepts + drops, "skipped": skipped, "open_to_all": open_to_all, "blocker": blocker, "services": list(services),
+            "add": accepts + custom + drops, "skipped": skipped, "open_to_all": open_to_all, "blocker": blocker, "services": list(services),
             "not_protected": not_protected, "dmz": bool(table.get(("dmz", None))),
             "nsm_rules": sum(1 for r in rules_of(text) if str(r["fields"].get("comment") or "").startswith(COMMENT))}
 
@@ -277,15 +308,18 @@ def allowed_sources(summary: dict | None, proto: str, port: int) -> list[str] | 
             return allowed
     return None
 
-def edit_config(text: str, networks: list[str], services=DEFAULT_SERVICES) -> str:
-    """``system.cfg`` with NSM's ACCEPTs first, the operator's rules, NSM's DROPs last, firewall on; other lines unchanged."""
-    planned = plan(text, networks, services)
+def edit_config(text: str, networks: list[str], services=DEFAULT_SERVICES, common=(), device=()) -> str:
+    """``system.cfg`` with NSM's ACCEPTs first, the device's then the common rules, the operator's rules, NSM's DROPs last,
+    firewall on; other lines unchanged."""
+    planned = plan(text, networks, services, common, device)
     keep = [r for r in rules_of(text) if not str(r["fields"].get("comment") or "").startswith(COMMENT)]
-    ordered = ([{"cmd": _cmd(r["protocol"], r["port"], "ACCEPT", r["src"]), "comment": r["comment"], "status": "enabled"}
-                for r in planned["add"] if r["target"] == "ACCEPT"]
-               + [r["fields"] for r in keep]
-               + [{"cmd": _cmd(r["protocol"], r["port"], "DROP"), "comment": r["comment"], "status": "enabled"}
-                  for r in planned["add"] if r["target"] == "DROP"])
+
+    def written(rules):
+        return [{"cmd": _cmd(r["protocol"], r["port"], r["target"], r["src"]), "comment": r["comment"], "status": "enabled"} for r in rules]
+
+    nsm = [r for r in planned["add"] if r["service"] != "custom"]
+    ordered = (written(r for r in nsm if r["target"] == "ACCEPT") + written(r for r in planned["add"] if r["service"] == "custom")
+               + [r["fields"] for r in keep] + written(r for r in nsm if r["target"] == "DROP"))
     lines = text.splitlines()
     first = next((i for i, line in enumerate(lines) if _RULE.match(line)), None)
     lines = [line for line in lines if not _RULE.match(line)]
@@ -315,8 +349,8 @@ def _system_cfg(data: bytes) -> str:
         return tar.extractfile(member).read().decode("utf-8")
 
 
-def _repack(data: bytes, networks: list[str], services=DEFAULT_SERVICES) -> bytes:
-    return repack_with(data, lambda text: edit_config(text, networks, services))
+def _repack(data: bytes, networks: list[str], services=DEFAULT_SERVICES, common=(), device=()) -> bytes:
+    return repack_with(data, lambda text: edit_config(text, networks, services, common, device))
 
 
 def repack_with(data: bytes, edit) -> bytes:
@@ -354,14 +388,103 @@ def parse_services(raw) -> tuple[str, ...]:
     return chosen
 
 
-def preview(db, device: Device, services=DEFAULT_SERVICES) -> dict:
+def clean_rules(raw) -> list[dict]:
+    """Rules typed by the operator: TCP or UDP, one port, an IPv4 source (empty: everybody), accept or drop, a short comment."""
+    if not isinstance(raw, list):
+        raise UispFirewallError("rules", "Elenco regole non valido.")
+    if len(raw) > MAX_RULES:
+        raise UispFirewallError("rules", f"Al massimo {MAX_RULES} regole.")
+    out = []
+    for number, item in enumerate(raw, start=1):
+        item = item if isinstance(item, dict) else {}
+        protocol = str(item.get("protocol") or "").lower()
+        if protocol not in ("tcp", "udp"):
+            raise UispFirewallError("rules", f"Regola {number}: il protocollo è TCP o UDP.")
+        try:
+            port = int(item.get("port"))
+        except (TypeError, ValueError):
+            port = 0
+        if not 1 <= port <= 65535:
+            raise UispFirewallError("rules", f"Regola {number}: la porta va da 1 a 65535.")
+        src = str(item.get("src") or "").strip()
+        if src:
+            try:
+                network = ipaddress.ip_network(src, strict=False)
+            except ValueError:
+                raise UispFirewallError("rules", f"Regola {number}: sorgente non valida ({src[:50]}).") from None
+            if network.version != 4:
+                raise UispFirewallError("rules", f"Regola {number}: il firewall airOS accetta solo indirizzi IPv4.")
+            src = "" if network.prefixlen == 0 else str(network)
+        action = str(item.get("action") or "").lower()
+        if action not in ("accept", "drop"):
+            raise UispFirewallError("rules", f"Regola {number}: l'azione è consenti o blocca.")
+        comment = " ".join(_COMMENT_TEXT.sub("", str(item.get("comment") or "")).split())[:32]
+        out.append({"protocol": protocol, "port": port, "src": src, "action": action, "comment": comment})
+    return out
+
+
+def _settings_row(db):
+    return db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == SETTINGS_PROVIDER))
+
+
+def load_settings(db) -> dict:
+    """The common rules: services (all four until saved) and the operator's extra rules."""
+    row = _settings_row(db)
+    saved = dict(row.settings or {}) if row else {}
+    services = tuple(s for s in SERVICES if s in (saved.get("services") or ())) or DEFAULT_SERVICES
+    return {"services": services, "rules": list(saved.get("rules") or []), "saved": row is not None}
+
+
+def save_settings(db, user, body: dict) -> dict:
+    """Validate and store the common rules, audited. Nothing is applied: the CPEs become outdated. Caller commits."""
+    settings = {"services": list(parse_services(body.get("services"))), "rules": clean_rules(body.get("rules") or [])}
+    row = _settings_row(db)
+    if row is None:
+        row = ConnectorIntegration(provider=SETTINGS_PROVIDER, name="Regole ACL comuni airOS", base_url="nsm://uisp-acl", secret_encrypted="", settings={})
+        db.add(row)
+    row.settings = settings
+    core.add_event(db, "UISP_ACL_CHANGED", actor=user, source="portal", details={"services": settings["services"], "rules": settings["rules"]})
+    return {**settings, "services": tuple(settings["services"]), "saved": True}
+
+
+def device_rules(device: Device) -> list[dict]:
+    return list((device.inventory_data or {}).get(DEVICE_RULES_KEY) or [])
+
+
+def signature(networks, services, common, device) -> str:
+    """What the CPE's NSM rules were built from: a change of any of these makes the CPE ``outdated``."""
+    payload = {"networks": sorted(networks or []), "services": [s for s in SERVICES if s in (services or ())], "common": list(common or []),
+               "device": list(device or [])}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def stored_signature(value: dict) -> str:
+    """The signature of an apply; one made before 0.49.349 had neither common nor device rules."""
+    return value.get("signature") or signature(value.get("networks") or [], value.get("services") or (), [], [])
+
+
+def current_signature(db, device: Device, settings: dict | None = None, networks: list[str] | None = None) -> str:
+    settings = settings or load_settings(db)
+    return signature(_networks(db) if networks is None else networks, settings["services"], settings["rules"], device_rules(device))
+
+
+def mark_current(db, device: Device) -> None:
+    """The CPE already has exactly the current rules (nothing applied): remember it, so it is no longer outdated."""
+    value = dict((device.inventory_data or {}).get(KEY) or {})
+    value.update({"status": "applied", "signature": current_signature(db, device)})
+    device.inventory_data = {**(device.inventory_data or {}), KEY: value}
+
+
+def preview(db, device: Device) -> dict:
     """The plan computed on the newest backup UISP already holds (nothing is asked to the CPE)."""
     connection = base._connection(db, device)
     newest = base._newest_backup(connection, device, set())
     if newest is None:
         raise UispFirewallError("backup", "UISP non ha ancora backup di questo dispositivo: crea un backup dalla scheda UISP.")
     data = base._call(connection, "GET", f"/devices/{device.external_device_id}/backups/{newest['id']}", "il download del backup").content
-    return {**plan(_system_cfg(data), _networks(db), services), "backup": {"id": newest.get("id"), "timestamp": newest.get("timestamp")}}
+    settings = load_settings(db)
+    return {**plan(_system_cfg(data), _networks(db), settings["services"], settings["rules"], device_rules(device)),
+            "backup": {"id": newest.get("id"), "timestamp": newest.get("timestamp")}}
 
 
 
@@ -417,20 +540,24 @@ def upload_and_apply(connection, device: Device, data: bytes, filename: str) -> 
     return uploaded["id"]
 
 
-def configure(db, user, device: Device, confirmation: str, services=DEFAULT_SERVICES, bulk: bool = False) -> dict:
+def configure(db, user, device: Device, confirmation: str, bulk: bool = False, services=None) -> dict:
+    """``services``: those of a scheduled request (chosen when it was scheduled); otherwise the common rules' ones."""
     if not bulk and (confirmation or "").strip() != base.device_name(device):
         raise UispFirewallError("confirmation", f"Per confermare scrivi esattamente il nome del dispositivo: {base.device_name(device)}")
     networks = _networks(db)
+    settings = load_settings(db)
+    services, common, extra = tuple(services or settings["services"]), settings["rules"], device_rules(device)
     connection = base._connection(db, device)
     before, original = restore_point(connection, device)
-    planned = plan(_system_cfg(original), networks, services)
+    planned = plan(_system_cfg(original), networks, services, common, extra)
     if planned["blocker"]:
         raise UispFirewallError("blocked", planned["blocker"])
     if bulk and (planned["up_to_date"] or not planned["add"]):
         raise UispFirewallError("up_to_date", "Nessuna regola da aggiungere: la CPE è già protetta.")
-    uploaded = {"id": upload_and_apply(connection, device, _repack(original, networks, services), "nsm-firewall.tar.gz")}
+    uploaded = {"id": upload_and_apply(connection, device, _repack(original, networks, services, common, extra), "nsm-firewall.tar.gz")}
     value = {"status": "applied", "applied_at": utcnow().isoformat(), "by": user.username if user else None, "networks": networks, "lan": planned["lan"],
-             "services": list(services), "not_protected": planned["not_protected"],
+             "services": list(services), "not_protected": planned["not_protected"], "common_rules": len(common), "device_rules": len(extra),
+             "signature": signature(networks, services, common, extra),
              "rules_added": len(planned["add"]), "skipped": len(planned["skipped"]), "backup_before": before["id"], "backup_applied": uploaded["id"]}
     device.inventory_data = {**(device.inventory_data or {}), KEY: value}
     core.add_event(db, "UISP_FIREWALL_CONFIGURED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",
@@ -462,17 +589,18 @@ def _fail(exc: InputError):
 
 
 @router.get("/devices/{device_id}/uisp/firewall")
-def device_firewall(request: Request, device_id: uuid.UUID, services: str = ""):
+def device_firewall(request: Request, device_id: uuid.UUID):
     with SessionLocal() as db:
         user = ui_user(request, db, "monitoring.read")
         device = base._ubiquiti(db, device_id)
         value = (device.inventory_data or {}).get(KEY)
+        settings = load_settings(db)
         out = {"name": base.device_name(device), "state": value, "can_restore": bool(value and value.get("backup_before")),
                "can_configure": core.has_permission(user, "devices.write"), "plan": None, "error": None,
-               "services": list(SERVICES), "default_services": list(DEFAULT_SERVICES)}
+               "services": list(settings["services"]), "common_rules": settings["rules"], "device_rules": device_rules(device),
+               "outdated": bool(value and value.get("status") == "applied" and stored_signature(value) != current_signature(db, device, settings))}
         try:
-            chosen = parse_services(services) if services else tuple(out["default_services"])
-            out["plan"] = preview(db, device, chosen)
+            out["plan"] = preview(db, device)
         except InputError as exc:
             out["error"] = str(exc.detail)
         return out
@@ -484,7 +612,7 @@ def device_firewall_apply(request: Request, device_id: uuid.UUID, body: dict = B
         user = ui_user(request, db, "devices.write")
         device = base._ubiquiti(db, device_id)
         try:
-            return {"state": configure(db, user, device, str(body.get("confirmation") or ""), parse_services(body.get("services") or DEFAULT_SERVICES))}
+            return {"state": configure(db, user, device, str(body.get("confirmation") or ""))}
         except InputError as exc:
             db.rollback()
             _fail(exc)
@@ -500,6 +628,28 @@ def device_firewall_restore(request: Request, device_id: uuid.UUID, body: dict =
         except InputError as exc:
             db.rollback()
             _fail(exc)
+
+
+@router.get("/security/acl")
+def common_rules(request: Request):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "security.read")
+        settings = load_settings(db)
+        return {"services": list(settings["services"]), "rules": settings["rules"], "saved": settings["saved"], "all_services": list(SERVICES),
+                "networks": _networks(db), "max_rules": MAX_RULES, "can_edit": core.has_permission(user, "devices.write")}
+
+
+@router.put("/security/acl", dependencies=[Depends(require_csrf)])
+def common_rules_save(request: Request, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        try:
+            settings = save_settings(db, user, body or {})
+        except InputError as exc:
+            db.rollback()
+            _fail(exc)
+        db.commit()
+        return {"services": list(settings["services"]), "rules": settings["rules"], "saved": True}
 
 
 def install_uisp_firewall(app) -> None:

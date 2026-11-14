@@ -48,7 +48,8 @@
       "issues_one": "{{count}} segnalazione aperta",
       "issues_other": "{{count}} segnalazioni aperte"
     },
-    "ipAbuse": "Abusi IP"
+    "ipAbuse": "Abusi IP",
+    "acl": "Regole ACL"
   },
   "user": {
     "language": "Lingua",
@@ -1455,7 +1456,6 @@
     "sections": {
       "label": "Sezioni",
       "services": "Servizi esposti",
-      "firewall": "Firewall delle CPE",
       "upnp": "UPnP"
     },
     "search": "Cerca apparato, IP o cliente",
@@ -5791,7 +5791,8 @@
     "ZABBIX_HOST_LINKED": "Apparato collegato a un host Zabbix esistente",
     "ZABBIX_SETTINGS_CHANGED": "Impostazioni Zabbix modificate",
     "ZABBIX_SNMP_COMMUNITY_ENCRYPTED": "Community SNMP di Zabbix cifrata",
-    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta"
+    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta",
+    "UISP_ACL_CHANGED": "Regole ACL comuni airOS modificate"
   },
   "eventSources": {
     "portal": "interfaccia",
@@ -7502,7 +7503,14 @@
       "discovery": "Discovery Ubiquiti"
     },
     "dmz": "La DMZ è attiva: le porte non tra le eccezioni della DMZ vanno al dispositivo del cliente, non alla CPE. NSM non mette regole su quelle porte per non bloccare il cliente.",
-    "notProtected": "Queste porte non vengono toccate perché la CPE le inoltra al cliente (port forward o DMZ): una regola lì bloccherebbe il servizio del cliente."
+    "notProtected": "Queste porte non vengono toccate perché la CPE le inoltra al cliente (port forward o DMZ): una regola lì bloccherebbe il servizio del cliente.",
+    "servicesFrom": "Servizi protetti: {{services}}. Regole aggiuntive comuni: {{common}}, di questa CPE: {{device}}. Si modificano in",
+    "outdated": "Le regole NSM sulla CPE sono state applicate con regole o reti di gestione diverse da quelle di adesso: applicale di nuovo.",
+    "kind": {
+      "comune": "regola comune",
+      "dispositivo": "regola della CPE",
+      "custom": "regola aggiuntiva"
+    }
   },
   "upnp": {
     "hint": "Con UPnP qualsiasi dispositivo della LAN del cliente può aprire porte verso Internet senza controllo. NSM consiglia di disattivarlo; non lo fa mai da solo.",
@@ -7828,6 +7836,44 @@
       "bridge": "Bridge, non gestite"
     },
     "requests": "Richieste programmate",
-    "outdated": "Protetta da NSM solo per: {{services}}"
+    "outdated": "Protetta da NSM solo per: {{services}}",
+    "rules": "Si applicano le regole comuni di adesso: {{services}}, più {{count}} regole aggiuntive e quelle di ogni CPE."
+  },
+  "acl": {
+    "title": "Regole ACL",
+    "subtitle": "Le regole del firewall airOS che NSM scrive sulle CPE gestite da UISP, e la loro applicazione notturna.",
+    "save": "Salva le regole comuni",
+    "saved": "Salvate. Le CPE già protette risultano da aggiornare: programmale qui sotto.",
+    "common": {
+      "title": "Regole comuni",
+      "hint": "Valgono per tutte le CPE airOS. NSM consente i servizi scelti solo dalle reti di gestione e dalla LAN della CPE, e li blocca a tutti gli altri. Salvare non cambia nulla sulle CPE: le regole arrivano con la prossima applicazione, che riavvia la CPE.",
+      "networks": "Reti di gestione:",
+      "noNetworks": "nessuna salvata",
+      "manageNetworks": "Modifica le reti di gestione"
+    },
+    "rules": {
+      "title": "Regole aggiuntive",
+      "hint": "Scritte dopo quelle che consentono le reti di gestione, quindi non possono togliere l'accesso a NSM, e prima delle regole scritte a mano sulla CPE. Una sorgente vuota vale per tutti. Su una porta inoltrata al cliente non vengono scritte.",
+      "empty": "Nessuna regola aggiuntiva.",
+      "add": "Aggiungi regola",
+      "remove": "Togli",
+      "up": "Sposta su",
+      "down": "Sposta giù",
+      "anySource": "tutti",
+      "columns": {
+        "action": "Azione",
+        "protocol": "Protocollo",
+        "port": "Porta",
+        "source": "Sorgente (IPv4)",
+        "comment": "Commento"
+      },
+      "actions": {
+        "accept": "Consenti",
+        "drop": "Blocca"
+      }
+    },
+    "fleet": {
+      "title": "Applicazione alle CPE"
+    }
   }
 }

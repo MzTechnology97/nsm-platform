@@ -18,7 +18,7 @@ interface Fleet {
   batches: Batch[];
   counts: { candidate: number; outdated: number; applied: number; active: number; bridge: number; own_rules: number };
   services: string[];
-  default_services: string[];
+  common_rules: number;
   max_bulk: number;
   default_hours: number;
   max_hours: number;
@@ -37,13 +37,12 @@ function nextNight() {
   return toLocalInput(date.toISOString());
 }
 
-/** Exposure page: firewall rules on many airOS CPEs without active rules, applied by the worker in a nightly window. */
+/** ACL rules page: NSM's firewall rules on many airOS CPEs (without rules, or with older ones), applied by the worker in a nightly window. */
 export function UispFirewallBulkPanel({ customer, toolbar }: { customer?: string; toolbar?: ReactNode }) {
   const { t, i18n } = useTranslation();
   const client = useQueryClient();
   const query = useQuery({ queryKey: ["security", "uisp-firewall", customer ?? ""], queryFn: () => api<Fleet>(`/api/ui/v1/security/uisp-firewall${customer ? `?customer=${customer}` : ""}`) });
   const [chosen, setChosen] = useState<string[]>([]);
-  const [picked, setPicked] = useState<string[] | null>(null);
   const [when, setWhen] = useState(nextNight);
   const [hours, setHours] = useState<number | null>(null);
   const [typed, setTyped] = useState("");
@@ -51,11 +50,10 @@ export function UispFirewallBulkPanel({ customer, toolbar }: { customer?: string
   const paging = usePaging(`${text}|${customer ?? ""}`);
   const refresh = () => void client.invalidateQueries({ queryKey: ["security", "uisp-firewall"] });
   const data = query.data;
-  const services = picked ?? data?.default_services ?? [];
   const windowHours = hours ?? data?.default_hours ?? 4;
   const schedule = useMutation({
     mutationFn: () => api<{ queued: number; skipped: { id: string; name: string; reason: string }[] }>("/api/ui/v1/security/uisp-firewall/schedule", {
-      method: "POST", body: JSON.stringify({ device_ids: chosen, confirmation: typed, at: fromLocalInput(when), hours: windowHours, services }),
+      method: "POST", body: JSON.stringify({ device_ids: chosen, confirmation: typed, at: fromLocalInput(when), hours: windowHours }),
     }),
     onSuccess: () => { setChosen([]); setTyped(""); refresh(); },
   });
@@ -64,7 +62,6 @@ export function UispFirewallBulkPanel({ customer, toolbar }: { customer?: string
     onSuccess: refresh,
   });
   if (!data) return null;
-  const toggleService = (service: string) => setPicked(services.includes(service) ? services.filter((s) => s !== service) : data.services.filter((s) => s === service || services.includes(s)));
   const toggle = (rowId: string) => setChosen(chosen.includes(rowId) ? chosen.filter((value) => value !== rowId) : [...chosen, rowId]);
   const needle = text.trim().toLowerCase();
   const visible = data.candidates.filter((row) => !needle || `${row.name} ${row.customer ?? ""}`.toLowerCase().includes(needle));
@@ -72,6 +69,7 @@ export function UispFirewallBulkPanel({ customer, toolbar }: { customer?: string
   const submit = (event: FormEvent) => { event.preventDefault(); schedule.mutate(); };
   return (
     <section className="ui-panel ui-admin-section">
+      <h2>{t("acl.fleet.title")}</h2>
       <p className="ui-muted">{t("uispFirewallBulk.hint")}</p>
       <div className="ui-metrics">
         {(["candidate", "outdated", "applied", "active", "own_rules", "bridge"] as const).map((name) => (
@@ -172,15 +170,9 @@ export function UispFirewallBulkPanel({ customer, toolbar }: { customer?: string
       {data.can_schedule && chosen.length > 0 && (
         <form className="ui-admin-form ui-admin-stack" onSubmit={submit}>
           <div className="ui-alert ui-alert-warning">{t("uispFirewallBulk.reboot", { count: chosen.length })}</div>
-          <fieldset className="ui-row-actions">
-            <legend>{t("uispFirewall.services")}</legend>
-            {data.services.map((service) => (
-              <label key={service}>
-                <input type="checkbox" checked={services.includes(service)} disabled={services.length === 1 && services.includes(service)} onChange={() => toggleService(service)} />{" "}
-                {t(`uispFirewall.service.${service}`)}
-              </label>
-            ))}
-          </fieldset>
+          <p className="ui-muted">
+            {t("uispFirewallBulk.rules", { services: data.services.map((service) => t(`uispFirewall.service.${service}`)).join(", "), count: data.common_rules })}
+          </p>
           <label>
             <span>{t("uispFirewallBulk.start")}</span>
             <input type="datetime-local" value={when} onChange={(event) => setWhen(event.target.value)} required />

@@ -48,7 +48,8 @@
       "issues_one": "{{count}} signalement ouvert",
       "issues_other": "{{count}} signalements ouverts"
     },
-    "ipAbuse": "Abus IP"
+    "ipAbuse": "Abus IP",
+    "acl": "Règles ACL"
   },
   "user": {
     "language": "Langue",
@@ -1455,7 +1456,6 @@
     "sections": {
       "label": "Sections",
       "services": "Services exposés",
-      "firewall": "Pare-feu des CPE",
       "upnp": "UPnP"
     },
     "search": "Rechercher un équipement, une IP ou un client",
@@ -5791,7 +5791,8 @@
     "ZABBIX_HOST_LINKED": "Équipement lié à un hôte Zabbix existant",
     "ZABBIX_SETTINGS_CHANGED": "Paramètres Zabbix modifiés",
     "ZABBIX_SNMP_COMMUNITY_ENCRYPTED": "Communauté SNMP Zabbix chiffrée",
-    "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée"
+    "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée",
+    "UISP_ACL_CHANGED": "Règles ACL communes airOS modifiées"
   },
   "eventSources": {
     "portal": "interface",
@@ -7502,7 +7503,14 @@
       "discovery": "Découverte Ubiquiti"
     },
     "dmz": "La DMZ est active : les ports hors des exceptions de la DMZ vont vers l'équipement du client, pas vers la CPE. NSM ne met aucune règle sur ces ports pour ne pas bloquer le client.",
-    "notProtected": "Ces ports ne sont pas modifiés car la CPE les redirige vers le client (redirection de port ou DMZ) : une règle y bloquerait le service du client."
+    "notProtected": "Ces ports ne sont pas modifiés car la CPE les redirige vers le client (redirection de port ou DMZ) : une règle y bloquerait le service du client.",
+    "servicesFrom": "Services protégés : {{services}}. Règles supplémentaires communes : {{common}}, de ce CPE : {{device}}. Modifiables dans",
+    "outdated": "Les règles NSM du CPE ont été appliquées avec des règles ou des réseaux de gestion différents des actuels : appliquez-les de nouveau.",
+    "kind": {
+      "comune": "règle commune",
+      "dispositivo": "règle du CPE",
+      "custom": "règle supplémentaire"
+    }
   },
   "upnp": {
     "hint": "Avec UPnP, n'importe quel appareil du LAN du client peut ouvrir des ports vers Internet sans contrôle. NSM conseille de le désactiver ; il ne le fait jamais de lui-même.",
@@ -7828,6 +7836,44 @@
       "bridge": "Bridge, non gérés"
     },
     "requests": "Demandes programmées",
-    "outdated": "Protégé par NSM seulement pour : {{services}}"
+    "outdated": "Protégé par NSM seulement pour : {{services}}",
+    "rules": "Les règles communes actuelles s'appliquent : {{services}}, plus {{count}} règles supplémentaires et celles de chaque CPE."
+  },
+  "acl": {
+    "title": "Règles ACL",
+    "subtitle": "Les règles du pare-feu airOS que NSM écrit sur les CPE gérés par UISP, et leur application nocturne.",
+    "save": "Enregistrer les règles communes",
+    "saved": "Enregistrées. Les CPE déjà protégés sont à mettre à jour : programmez-les ci-dessous.",
+    "common": {
+      "title": "Règles communes",
+      "hint": "Elles valent pour tous les CPE airOS. NSM autorise les services choisis seulement depuis les réseaux de gestion et le LAN du CPE, et les bloque pour tous les autres. Enregistrer ne change rien sur les CPE : les règles arrivent avec la prochaine application, qui redémarre le CPE.",
+      "networks": "Réseaux de gestion :",
+      "noNetworks": "aucun enregistré",
+      "manageNetworks": "Modifier les réseaux de gestion"
+    },
+    "rules": {
+      "title": "Règles supplémentaires",
+      "hint": "Écrites après celles qui autorisent les réseaux de gestion, elles ne peuvent donc pas retirer l'accès de NSM, et avant les règles écrites à la main sur le CPE. Une source vide vaut pour tous. Elles ne sont pas écrites sur un port redirigé vers le client.",
+      "empty": "Aucune règle supplémentaire.",
+      "add": "Ajouter une règle",
+      "remove": "Retirer",
+      "up": "Monter",
+      "down": "Descendre",
+      "anySource": "tous",
+      "columns": {
+        "action": "Action",
+        "protocol": "Protocole",
+        "port": "Port",
+        "source": "Source (IPv4)",
+        "comment": "Commentaire"
+      },
+      "actions": {
+        "accept": "Autoriser",
+        "drop": "Bloquer"
+      }
+    },
+    "fleet": {
+      "title": "Application aux CPE"
+    }
   }
 }

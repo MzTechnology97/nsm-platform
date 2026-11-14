@@ -48,7 +48,8 @@
       "issues_one": "{{count}} open issue",
       "issues_other": "{{count}} open issues"
     },
-    "ipAbuse": "IP abuse"
+    "ipAbuse": "IP abuse",
+    "acl": "ACL rules"
   },
   "user": {
     "language": "Language",
@@ -1455,7 +1456,6 @@
     "sections": {
       "label": "Sections",
       "services": "Exposed services",
-      "firewall": "CPE firewall",
       "upnp": "UPnP"
     },
     "search": "Search device, IP or customer",
@@ -5791,7 +5791,8 @@
     "ZABBIX_HOST_LINKED": "Device linked to an existing Zabbix host",
     "ZABBIX_SETTINGS_CHANGED": "Zabbix settings changed",
     "ZABBIX_SNMP_COMMUNITY_ENCRYPTED": "Zabbix SNMP community encrypted",
-    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested"
+    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested",
+    "UISP_ACL_CHANGED": "Common airOS ACL rules changed"
   },
   "eventSources": {
     "portal": "interface",
@@ -7502,7 +7503,14 @@
       "discovery": "Ubiquiti discovery"
     },
     "dmz": "The DMZ is on: ports not among the DMZ exceptions go to the customer's device, not to the CPE. NSM puts no rule on those ports so the customer is not blocked.",
-    "notProtected": "These ports are left alone because the CPE forwards them to the customer (port forward or DMZ): a rule there would block the customer's service."
+    "notProtected": "These ports are left alone because the CPE forwards them to the customer (port forward or DMZ): a rule there would block the customer's service.",
+    "servicesFrom": "Protected services: {{services}}. Common extra rules: {{common}}, of this CPE: {{device}}. Edited in",
+    "outdated": "NSM's rules on the CPE were applied with rules or management networks other than the current ones: apply them again.",
+    "kind": {
+      "comune": "common rule",
+      "dispositivo": "CPE rule",
+      "custom": "extra rule"
+    }
   },
   "upnp": {
     "hint": "With UPnP any device of the customer LAN can open ports towards Internet without control. NSM suggests turning it off; it never does it on its own.",
@@ -7828,6 +7836,44 @@
       "bridge": "Bridge, not handled"
     },
     "requests": "Scheduled requests",
-    "outdated": "Protected by NSM only for: {{services}}"
+    "outdated": "Protected by NSM only for: {{services}}",
+    "rules": "The current common rules apply: {{services}}, plus {{count}} extra rules and those of each CPE."
+  },
+  "acl": {
+    "title": "ACL rules",
+    "subtitle": "The airOS firewall rules NSM writes on the CPEs managed by UISP, and their nightly application.",
+    "save": "Save the common rules",
+    "saved": "Saved. The CPEs already protected are now to update: schedule them below.",
+    "common": {
+      "title": "Common rules",
+      "hint": "They apply to every airOS CPE. NSM allows the chosen services only from the management networks and the CPE's LAN, and blocks them for everyone else. Saving changes nothing on the CPEs: the rules arrive with the next application, which reboots the CPE.",
+      "networks": "Management networks:",
+      "noNetworks": "none saved",
+      "manageNetworks": "Edit the management networks"
+    },
+    "rules": {
+      "title": "Extra rules",
+      "hint": "Written after the rules that allow the management networks, so they cannot take NSM's access away, and before the rules written by hand on the CPE. An empty source applies to everyone. They are not written on a port forwarded to the customer.",
+      "empty": "No extra rules.",
+      "add": "Add rule",
+      "remove": "Remove",
+      "up": "Move up",
+      "down": "Move down",
+      "anySource": "everyone",
+      "columns": {
+        "action": "Action",
+        "protocol": "Protocol",
+        "port": "Port",
+        "source": "Source (IPv4)",
+        "comment": "Comment"
+      },
+      "actions": {
+        "accept": "Allow",
+        "drop": "Block"
+      }
+    },
+    "fleet": {
+      "title": "Application to the CPEs"
+    }
   }
 }

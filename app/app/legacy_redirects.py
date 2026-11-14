@@ -32,6 +32,7 @@ REDIRECTS: dict[str, Target] = {
     "/security/access": ("/app/access", None),
     "/security/exposure": ("/app/exposure", {"view": "view", "customer": "customer"}),
     "/security/ip-abuse": ("/app/ip-abuse", {"source": "source", "q": "q"}),
+    "/security/acl": ("/app/acl", {"customer": "customer"}),
     "/security/lifecycle": ("/app/lifecycle", {"q": "q", "customer": "customer", "vendor": "vendor", "state": "state"}),
     "/security/lifecycle/catalog": ("/app/lifecycle/catalog", {"q": "q", "vendor": "vendor"}),
     "/security/lifecycle/catalog/new": ("/app/lifecycle/catalog/new", {"vendor": "vendor", "model": "model"}),

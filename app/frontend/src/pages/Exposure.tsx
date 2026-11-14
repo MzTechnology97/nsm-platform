@@ -11,7 +11,6 @@ import { useDebounced } from "../lib/hooks";
 import { SEVERITY_TONE } from "./Vulnerabilities";
 import { Loading } from "../app/States";
 import { Pager } from "../app/Pager";
-import { UispFirewallBulkPanel } from "../app/UispFirewallBulk";
 import { UpnpFleetPanel } from "../app/UpnpPanel";
 import { pageParams, usePaging } from "../lib/paging";
 
@@ -55,9 +54,7 @@ export function Exposure() {
           </Link>
         ))}
       </nav>
-      {section === "firewall" ? (
-        <UispFirewallBulkPanel customer={search.customer} toolbar={customer} />
-      ) : section === "upnp" ? (
+      {section === "upnp" ? (
         <UpnpFleetPanel customer={search.customer} toolbar={customer} />
       ) : (
         <Services toolbar={customer} />

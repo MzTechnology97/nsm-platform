@@ -118,7 +118,7 @@ def main():
     assert {f"bk-{k}-{s}" for k in ("a", "b", "c", "d", "e", "f", "off", "bridge")} <= names
     assert not {f"bk-{k}-{s}" for k in ("ownrules", "done", "knownbridge", "ap")} & names
     assert page["counts"]["own_rules"] >= 1 and page["counts"]["applied"] >= 1 and page["counts"]["bridge"] >= 1
-    assert page["default_services"] == ["ssh", "web", "snmp", "discovery"]
+    assert page["services"] == ["ssh", "web", "snmp", "discovery"] and page["common_rules"] == 0
     with SessionLocal() as db:
         done = db.get(Device, ids["done"])
         older = dict(done.inventory_data)
@@ -145,10 +145,18 @@ def main():
 
     # A CPE that is not a candidate is reported, not scheduled.
     start = now + timedelta(hours=1)
-    result = request(["a", "b", "c", "off", "bridge", "ownrules"], start, services=["ssh"]).json()
+    # The services are those of the common rules (Sicurezza → Regole ACL): SSH only in this test.
+    with SessionLocal() as db:
+        fw.save_settings(db, None, {"services": ["ssh"], "rules": []})
+        db.commit()
+    result = request(["a", "b", "c", "off", "bridge", "ownrules"], start).json()
     assert result["queued"] == 5 and [r["reason"] for r in result["skipped"]] == ["own_rules"], result
     batch = result["batch"]
     assert status("ownrules") is None
+    # The request keeps the services it was scheduled with, even if the common rules change before it runs.
+    with SessionLocal() as db:
+        fw.save_settings(db, None, {"services": list(fw.SERVICES), "rules": []})
+        db.commit()
 
     # Outside the window nothing happens: before the start, and in the same day after the window.
     assert bulk.tick(now)["started"] == 0
@@ -161,6 +169,8 @@ def main():
         device = db.get(Device, ids["a"])
         assert device.inventory_data[fw.KEY]["status"] == "applied" and device.inventory_data[fw.KEY]["services"] == ["ssh"]
         assert device.inventory_data[fw.KEY]["by"] == f"ci-bk-{s}", "the scheduling operator is the actor"
+        fw.save_settings(db, None, {"services": ["ssh"], "rules": []})
+        db.commit()
     assert bulk.tick(start + timedelta(minutes=1))["started"] == 0 and status("b") == "scheduled", "too early to know it rebooted"
     assert bulk.tick(start + timedelta(minutes=2))["started"] == 0
     fake.offline.add(ext("a"))
@@ -173,12 +183,27 @@ def main():
     with SessionLocal() as db:
         applied = len(fake.devices[ext("a")]["applied"])
         try:
-            fw.configure(db, None, db.get(Device, ids["a"]), "", ("ssh",), bulk=True)
+            fw.configure(db, None, db.get(Device, ids["a"]), "", bulk=True)
             raise AssertionError("nothing to add must not apply")
         except InputError as exc:
             assert exc.code == "up_to_date"
         db.rollback()
+
         assert len(fake.devices[ext("a")]["applied"]) == applied
+
+    # A change of the common rules makes the CPEs done so far outdated: offered again, without touching them.
+    def listed(key):
+        return next((r for r in client.get(URL).json()["candidates"] if r["name"] == f"bk-{key}-{s}"), None)
+
+    assert listed("a") is None, "applied with the current rules"
+    with SessionLocal() as db:
+        fw.save_settings(db, None, {"services": ["ssh"], "rules": [{"protocol": "tcp", "port": 8291, "src": "198.51.100.9", "action": "accept"}]})
+        db.commit()
+    assert listed("a")["outdated"] is True and client.get(URL).json()["counts"]["outdated"] >= 1
+    with SessionLocal() as db:
+        fw.save_settings(db, None, {"services": ["ssh"], "rules": []})
+        db.commit()
+    assert listed("a") is None, "back to the rules it has"
 
     # After the pilot one per run, without waiting for the previous one: "bridge" (sorted before c) is skipped, no reboot.
     stats = bulk.tick(start + timedelta(minutes=6))

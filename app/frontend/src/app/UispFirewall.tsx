@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -5,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
 import { formatDateTime } from "../lib/format";
 
-interface Rule { service: string; protocol: number; port: number; src: string | null; target: "ACCEPT" | "DROP"; comment: string; because?: string }
+interface Rule { service: string; kind?: string; protocol: number; port: number; src: string | null; target: "ACCEPT" | "DROP"; comment: string; because?: string }
 interface Plan {
   netmode: string;
   lan: string[];
@@ -15,7 +16,7 @@ interface Plan {
   skipped: Rule[];
   open_to_all: string[];
   blocker: string | null;
-  not_protected: { service: string; protocol: number; port: number; reason: string }[];
+  not_protected: { service: string; protocol: number; port: number; reason: string; comment?: string }[];
   dmz: boolean;
   nsm_rules: number;
   up_to_date: boolean;
@@ -29,7 +30,9 @@ interface FirewallState {
   plan: Plan | null;
   error: string | null;
   services: string[];
-  default_services: string[];
+  common_rules: unknown[];
+  device_rules: unknown[];
+  outdated: boolean;
 }
 
 const proto = (value: number | string | null) => (value === 6 ? "TCP" : value === 17 ? "UDP" : value ?? "—");
@@ -38,22 +41,20 @@ function message(error: unknown) {
   return error instanceof ApiError ? error.message : (error as Error | null)?.message;
 }
 
-/** UISP tab of an airOS CPE: firewall rules that limit the chosen services (SSH, web, SNMP, discovery) to the management networks and the LAN. */
+/** UISP tab of an airOS CPE: firewall rules that limit the services of the common ACL rules to the management networks and the LAN, plus the extra rules. */
 export function UispFirewallPanel({ id }: { id: string }) {
   const { t, i18n } = useTranslation();
   const client = useQueryClient();
-  const [chosen, setChosen] = useState<string[] | null>(null);
-  const selection = chosen?.join(",") ?? "";
   const query = useQuery({
-    queryKey: ["device", id, "uisp-firewall", selection],
-    queryFn: () => api<FirewallState>(`/api/ui/v1/devices/${id}/uisp/firewall${selection ? `?services=${selection}` : ""}`),
+    queryKey: ["device", id, "uisp-firewall"],
+    queryFn: () => api<FirewallState>(`/api/ui/v1/devices/${id}/uisp/firewall`),
     retry: false,
     placeholderData: (previous) => previous,
   });
   const [typed, setTyped] = useState("");
   const done = () => { setTyped(""); void client.invalidateQueries({ queryKey: ["device", id] }); };
   const apply = useMutation({
-    mutationFn: (confirmation: string) => api(`/api/ui/v1/devices/${id}/uisp/firewall`, { method: "POST", body: JSON.stringify({ confirmation, services: active }) }),
+    mutationFn: (confirmation: string) => api(`/api/ui/v1/devices/${id}/uisp/firewall`, { method: "POST", body: JSON.stringify({ confirmation }) }),
     onSuccess: done,
   });
   const restore = useMutation({
@@ -61,10 +62,8 @@ export function UispFirewallPanel({ id }: { id: string }) {
     onSuccess: done,
   });
   const data = query.data;
-  const active = chosen ?? data?.default_services ?? [];
   if (!data) return null;
   const plan = data.plan;
-  const toggle = (service: string) => setChosen(active.includes(service) ? active.filter((s) => s !== service) : data.services.filter((s) => s === service || active.includes(s)));
   const submit = (event: FormEvent) => {
     event.preventDefault();
     apply.mutate(typed);
@@ -79,15 +78,12 @@ export function UispFirewallPanel({ id }: { id: string }) {
           : t("uispFirewall.applied", { when: formatDateTime(data.state.applied_at, i18n.language), by: data.state.by ?? "—", added: data.state.rules_added, skipped: data.state.skipped })}</p>
       )}
       {data.error && <div className="ui-alert ui-alert-warning">{data.error}</div>}
-      <fieldset className="ui-row-actions">
-        <legend>{t("uispFirewall.services")}</legend>
-        {data.services.map((service) => (
-          <label key={service}>
-            <input type="checkbox" checked={active.includes(service)} disabled={active.length === 1 && active.includes(service)} onChange={() => toggle(service)} />{" "}
-            {t(`uispFirewall.service.${service}`)}
-          </label>
-        ))}
-      </fieldset>
+      <p className="ui-muted">
+        {t("uispFirewall.servicesFrom", { services: data.services.map((service) => t(`uispFirewall.service.${service}`)).join(", "),
+          common: data.common_rules.length, device: data.device_rules.length })}{" "}
+        <Link to="/acl">{t("acl.title")}</Link>
+      </p>
+      {data.outdated && <div className="ui-alert ui-alert-warning">{t("uispFirewall.outdated")}</div>}
       {plan && (
         <>
           <p className="ui-muted">{t("uispFirewall.from", { mode: plan.netmode, lan: plan.lan.join(", ") || "—", nsm: plan.nsm_rules })}</p>
@@ -96,7 +92,7 @@ export function UispFirewallPanel({ id }: { id: string }) {
           {plan.not_protected.length > 0 && (
             <div className="ui-alert ui-alert-warning">
               {t("uispFirewall.notProtected")}
-              <ul>{plan.not_protected.map((item, index) => <li key={index}>{proto(item.protocol)}/{item.port} · {t(`uispFirewall.service.${item.service}`)}: {item.reason}</li>)}</ul>
+              <ul>{plan.not_protected.map((item, index) => <li key={index}>{proto(item.protocol)}/{item.port} · {item.service === "custom" ? item.comment || t("uispFirewall.kind.custom") : t(`uispFirewall.service.${item.service}`)}: {item.reason}</li>)}</ul>
             </div>
           )}
           {plan.open_to_all.length > 0 && <div className="ui-alert ui-alert-warning">{t("uispFirewall.openToAll", { services: plan.open_to_all.join(", ") })}</div>}
@@ -109,7 +105,7 @@ export function UispFirewallPanel({ id }: { id: string }) {
                   {plan.add.map((rule, index) => (
                     <tr key={index}>
                       <td><span className={rule.target === "ACCEPT" ? "ui-severity" : "ui-severity ui-severity-warning"}>{rule.target}</span></td>
-                      <td className="ui-mono">{proto(rule.protocol)}/{rule.port} · {rule.service}</td>
+                      <td className="ui-mono">{proto(rule.protocol)}/{rule.port} · {rule.service === "custom" ? t(`uispFirewall.kind.${rule.kind}`) : rule.service}</td>
                       <td className="ui-mono">{rule.src ?? t("uispFirewall.everyoneElse")}</td>
                       <td>{rule.comment}</td>
                     </tr>
