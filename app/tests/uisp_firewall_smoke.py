@@ -278,6 +278,43 @@ def main():
     with SessionLocal() as db:
         kinds = [e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id == ids["router"]))]
     assert "UISP_FIREWALL_CONFIGURED" in kinds and "UISP_FIREWALL_RESTORED" in kinds, kinds
+
+    # 0.49.350: extra rules of this CPE, and the rules written by hand edited from its page.
+    rules_url = f"{url('router')}/rules"
+    assert client.put(rules_url, json={"rules": [{"protocol": "tcp", "port": 0, "action": "accept"}]}).status_code == 422
+    mine = client.put(rules_url, json={"rules": [{"protocol": "tcp", "port": 8443, "src": "198.51.100.20", "action": "accept", "comment": "tecnico"}]}).json()["device_rules"]
+    assert mine == [{"protocol": "tcp", "port": 8443, "src": "198.51.100.20/32", "action": "accept", "comment": "tecnico"}], mine
+    listed = client.get("/api/ui/v1/security/acl").json()["devices"]
+    assert [(d["id"], d["rules"], d["applied"]) for d in listed] == [(str(ids["router"]), 1, False)], listed
+    page = client.get(url("router")).json()
+    assert page["device_rules"] == mine and any(r.get("kind") == "dispositivo" for r in page["plan"]["add"])
+    hand = page["plan"]["manual"]
+    assert [r["comment"] for r in hand] == ["operator-ssh", "operator-web"], hand
+    seen = [r["cmd"] for r in hand]
+    edited = [{**hand[0], "comment": "ssh ufficio"}, {**hand[1], "enabled": False},
+              {"cmd": "-A FIREWALL --protocol 6 --dport 23 -j DROP", "comment": "telnet", "enabled": True}]
+
+    def apply(body):
+        return client.post(url("router"), json={"confirmation": f"cpe-router-{s}", **body})
+
+    applied_before = len(dev["applied"])
+    assert apply({"manual": edited, "manual_seen": seen[:1]}).json()["detail"]["code"] == "changed", "the CPE has other rules than those seen"
+    for wrong in ([*edited, {"cmd": "-A FIREWALL -j DROP", "enabled": True}],  # blocks every port: could cut the CPE off UISP
+                  [{"cmd": "iptables -F"}], [{**hand[0], "comment": "NSM-ACL finto"}]):
+        assert apply({"manual": wrong, "manual_seen": seen}).json()["detail"]["code"] == "manual", wrong
+    assert len(dev["applied"]) == applied_before, "nothing applied by a refused edit"
+    assert apply({"manual": edited, "manual_seen": seen}).json()["state"]["manual_edited"] is True
+    final = fw.rules_of(cfg_of(next(b[2] for b in dev["backups"] if b[0] == dev["applied"][-1])))
+    by_comment = {r["fields"]["comment"]: r["fields"] for r in final}
+    assert by_comment["ssh ufficio"]["status"] == "enabled" and by_comment["operator-web"]["status"] == "disabled"
+    assert by_comment["telnet"]["cmd"] == "-A FIREWALL --protocol 6 --dport 23 -j DROP" and "operator-ssh" not in by_comment
+    assert by_comment["NSM-ACL dispositivo tecnico"]["cmd"] == "-A FIREWALL --protocol 6 --src 198.51.100.20/32 --dport 8443 -j ACCEPT"
+    order = [r["fields"]["comment"] for r in final]
+    assert order.index("NSM-ACL dispositivo tecnico") < order.index("ssh ufficio") < order.index("operator-web") < order.index("telnet"), order
+    assert client.get("/api/ui/v1/security/acl").json()["devices"][0]["applied"] is True
+    # An existing rule that blocks every port may stay as it is.
+    kept = fw.clean_manual([{"cmd": "-A FIREWALL --src 192.0.2.99 -j DROP"}], ["-A FIREWALL --src 192.0.2.99 -j DROP"])
+    assert kept == [{"cmd": "-A FIREWALL --src 192.0.2.99 -j DROP", "comment": "", "enabled": True}]
     with SessionLocal() as db:
         db.execute(delete(ConnectorIntegration).where(ConnectorIntegration.provider == management_access.SETTINGS_PROVIDER))
         db.commit()

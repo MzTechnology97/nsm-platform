@@ -7873,6 +7873,31 @@
     },
     "fleet": {
       "title": "Application to the CPEs"
+    },
+    "device": {
+      "title": "Rules of this CPE",
+      "hint": "On top of the common rules, written before them. Saving them does not change the CPE: they arrive with the next application.",
+      "save": "Save the CPE rules"
+    },
+    "manual": {
+      "title": "Rules written by hand on the CPE",
+      "hint": "The rules that do not come from NSM, read from the latest UISP backup. You can change, switch off or remove them: the changes reach the CPE with the application below. NSM's rules stay first, so the management networks keep their access; a new rule that blocks must name the port.",
+      "columns": {
+        "enabled": "On",
+        "cmd": "iptables rule",
+        "comment": "Comment"
+      },
+      "reset": "Undo the changes",
+      "allRemoved": "All the rules written by hand will be removed.",
+      "withApply": "This application also changes the rules written by hand."
+    },
+    "devices": {
+      "title": "CPEs with their own rules",
+      "hint": "The rules of one CPE are edited from its UISP tab.",
+      "none": "No CPE has its own rules.",
+      "rules_one": "{{count}} rule",
+      "rules_other": "{{count}} rules",
+      "toApply": "to apply"
     }
   }
 }

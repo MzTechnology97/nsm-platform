@@ -7873,6 +7873,31 @@
     },
     "fleet": {
       "title": "Applicazione alle CPE"
+    },
+    "device": {
+      "title": "Regole di questa CPE",
+      "hint": "In aggiunta alle regole comuni, scritte prima di loro. Salvarle non cambia la CPE: arrivano con la prossima applicazione.",
+      "save": "Salva le regole della CPE"
+    },
+    "manual": {
+      "title": "Regole scritte a mano sulla CPE",
+      "hint": "Le regole che non vengono da NSM, lette dall'ultimo backup UISP. Puoi modificarle, disattivarle o toglierle: le modifiche vanno sulla CPE con l'applicazione qui sotto. Le regole di NSM restano prima, quindi le reti di gestione non perdono l'accesso; una regola nuova che blocca deve indicare la porta.",
+      "columns": {
+        "enabled": "Attiva",
+        "cmd": "Regola iptables",
+        "comment": "Commento"
+      },
+      "reset": "Annulla le modifiche",
+      "allRemoved": "Tutte le regole scritte a mano verranno tolte.",
+      "withApply": "Con questa applicazione cambiano anche le regole scritte a mano."
+    },
+    "devices": {
+      "title": "CPE con regole proprie",
+      "hint": "Le regole di una sola CPE si modificano dalla sua scheda UISP.",
+      "none": "Nessuna CPE ha regole proprie.",
+      "rules_one": "{{count}} regola",
+      "rules_other": "{{count}} regole",
+      "toApply": "da applicare"
     }
   }
 }

@@ -18,6 +18,7 @@ interface CommonAcl {
   networks: string[];
   max_rules: number;
   can_edit: boolean;
+  devices: { id: string; name: string; rules: number; applied: boolean }[];
 }
 
 const PATH = "/api/ui/v1/security/acl";
@@ -53,7 +54,10 @@ export function AclRules() {
       ) : !query.data ? (
         <Loading />
       ) : (
-        <CommonRules data={query.data} />
+        <>
+          <CommonRules data={query.data} />
+          <DevicesWithRules devices={query.data.devices} />
+        </>
       )}
       <UispFirewallBulkPanel customer={search.customer} toolbar={customer} />
     </section>
@@ -112,6 +116,30 @@ function CommonRules({ data }: { data: CommonAcl }) {
           </div>
         )}
       </form>
+    </section>
+  );
+}
+
+/** CPEs with rules of their own, edited from their UISP tab. */
+function DevicesWithRules({ devices }: { devices: CommonAcl["devices"] }) {
+  const { t } = useTranslation();
+  return (
+    <section className="ui-panel ui-admin-section">
+      <h2>{t("acl.devices.title")}</h2>
+      <p className="ui-muted">{t("acl.devices.hint")}</p>
+      {devices.length === 0 ? (
+        <p className="ui-muted">{t("acl.devices.none")}</p>
+      ) : (
+        <ul className="ui-admin-stack">
+          {devices.map((device) => (
+            <li key={device.id}>
+              <Link to="/devices/$deviceId/uisp" params={{ deviceId: device.id }}>{device.name}</Link>
+              {" · "}{t("acl.devices.rules", { count: device.rules })}
+              {!device.applied && <small className="ui-text-warning"> · {t("acl.devices.toApply")}</small>}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
