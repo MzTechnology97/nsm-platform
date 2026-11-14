@@ -90,7 +90,7 @@ export const useAdvisory = (id: string, customer?: string, status?: VulnStatus) 
 
 export const EXPOSURE_VIEWS = ["exposed", "internal", "setup", "clean", "pending", "all"] as const;
 export type ExposureView = (typeof EXPOSURE_VIEWS)[number];
-export const EXPOSURE_SECTIONS = ["services", "firewall", "upnp"] as const;
+export const EXPOSURE_SECTIONS = ["services", "upnp"] as const;
 export type ExposureSection = (typeof EXPOSURE_SECTIONS)[number];
 
 export interface ExposureFilters {

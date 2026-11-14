@@ -100,6 +100,21 @@ def main():
     smaller = fw.rules_of(fw.edit_config(edited, ["198.51.100.0/24"], CORE))
     assert not any("203.0.113.10/32" in r["fields"]["cmd"] and r["fields"]["comment"].startswith("NSM-ACL") for r in smaller), "follows the list"
 
+    # Device then common rules right after NSM's ACCEPTs, before the operator's; never on a forwarded port.
+    common = fw.clean_rules([{"protocol": "tcp", "port": 8081, "action": "drop", "comment": "web alt"}])
+    mine = fw.clean_rules([{"protocol": "TCP", "port": "8080", "src": "198.51.100.7", "action": "accept", "comment": "tecnico"}])
+    custom_cfg = fw.edit_config(cfg22, MGMT, CORE, common, mine)
+    order = [r["fields"]["comment"] for r in fw.rules_of(custom_cfg)]
+    first = order.index("NSM-ACL dispositivo tecnico")
+    assert order[first + 1:first + 3] == ["NSM-ACL comune web alt", "operator-ssh"], order
+    assert all(c.startswith("NSM-ACL") and "blocca" not in c for c in order[:first]), order
+    assert "-A FIREWALL --protocol 6 --src 198.51.100.7/32 --dport 8080 -j ACCEPT" in custom_cfg
+    assert "-A FIREWALL --protocol 6 --dport 8081 -j DROP" in custom_cfg
+    same = fw.clean_rules([{"protocol": "tcp", "port": 8080, "action": "drop", "comment": "doppia"}])
+    assert not any(r["service"] == "custom" for r in fw.plan(cfg22, MGMT, CORE, same)["add"]), "the operator already drops 8080: not duplicated"
+    assert fw.plan(custom_cfg, MGMT, CORE, common, mine)["up_to_date"] is True
+    assert fw.edit_config(custom_cfg, MGMT, CORE) == fw.edit_config(cfg22, MGMT, CORE), "rules removed in NSM leave the CPE"
+
     # Exposure check: which networks the rules admit per port (NSM ACCEPTs, the operator's, then the DROPs).
     summary = fw.firewall_summary(edited)
     assert set(fw.allowed_sources(summary, "tcp", 22)) == {"198.51.100.0/24", "192.0.2.0/24", "203.0.113.10/32"}
@@ -214,8 +229,24 @@ def main():
     applied_cfg = cfg_of(next(b[2] for b in dev["backups"] if b[0] == dev["applied"][-1]))
     assert "iptables.sys.fw.status=enabled" in applied_cfg and applied_cfg.count("NSM-ACL") == 20
     assert "-A FIREWALL --protocol 17 --dport 10001 -j DROP" in applied_cfg and "operator-web" in applied_cfg
-    assert client.get(url("router") + "?services=web").json()["plan"]["services"] == ["web"]
-    assert "servizio" in client.get(url("router") + "?services=x").json()["error"]
+    # Common rules (Sicurezza → Regole ACL): kept in NSM; a CPE applied before a change is outdated until applied again.
+    assert client.get(url("router")).json()["outdated"] is False
+    acl = "/api/ui/v1/security/acl"
+    bad = client.put(acl, json={"services": ["ssh"], "rules": [{"protocol": "tcp", "port": 70000, "action": "accept"}]})
+    assert bad.status_code == 422 and "porta" in bad.json()["detail"]["message"], bad.text
+    assert "IPv4" in client.put(acl, json={"services": ["ssh"], "rules": [{"protocol": "udp", "port": 53, "src": "2001:db8::/32", "action": "drop"}]}).json()["detail"]["message"]
+    assert client.put(acl, json={"services": [], "rules": []}).json()["detail"]["code"] == "services"
+    saved = client.put(acl, json={"services": list(fw.SERVICES), "rules": [
+        {"protocol": "tcp", "port": 8291, "src": "203.0.113.7", "action": "accept", "comment": "NOC <script>"}]}).json()
+    assert saved["rules"] == [{"protocol": "tcp", "port": 8291, "src": "203.0.113.7/32", "action": "accept", "comment": "NOC script"}], saved
+    assert client.get(acl).json()["rules"] == saved["rules"]
+    page = client.get(url("router")).json()
+    assert page["outdated"] is True and page["plan"]["up_to_date"] is False and page["common_rules"] == saved["rules"]
+    assert [r for r in page["plan"]["add"] if r["service"] == "custom"] == [{"service": "custom", "kind": "comune", "protocol": 6, "port": 8291,
+                                                                           "src": "203.0.113.7/32", "target": "ACCEPT", "comment": "NSM-ACL comune NOC script"}]
+    with SessionLocal() as db:
+        fw.save_settings(db, None, {"services": list(fw.SERVICES), "rules": []})
+        db.commit()
     page = client.get(url("router")).json()
     assert page["plan"]["nsm_rules"] == 20 and page["plan"]["up_to_date"] is True, "applied: nothing more to do, no useless reboot"
     assert fw.plan(applied_cfg, MGMT[:1], CORE)["up_to_date"] is False, "a changed list needs a new apply"

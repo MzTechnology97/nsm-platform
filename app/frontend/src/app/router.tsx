@@ -638,6 +638,12 @@ const exposureRoute = createRoute({
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
   }),
 });
+const aclRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/acl",
+  component: lazyRouteComponent(() => import("../pages/AclRules"), "AclRules"),
+  validateSearch: (search: Record<string, unknown>): { customer?: string } => (typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+});
 const ipAbuseRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/ip-abuse",
@@ -774,6 +780,7 @@ export const routeTree = rootRoute.addChildren([
   vulnerabilityRoute,
   vulnerabilityFindingRoute,
   exposureRoute,
+  aclRoute,
   ipAbuseRoute,
   accessRoute,
   syslogRulesRoute,

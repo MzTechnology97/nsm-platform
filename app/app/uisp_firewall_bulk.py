@@ -1,7 +1,7 @@
 """Scheduled firewall ACL on many airOS CPEs through UISP (ACCESS-01, operator request 2026-10-30).
 
-From the *Esposizione* page an operator chooses the CPEs without active rules, or protected by NSM without every default
-service (``outdated``: the web port was added to the defaults in 0.49.348), the services, the start time and the hours of each night's window (the count typed to confirm). Scheduling is the only confirmation: at that time the worker
+From *Sicurezza → Regole ACL* an operator chooses the CPEs without active rules, or with NSM's rules older than the
+current common rules, networks or device rules (``outdated``, from the signature of ``uisp_firewall``), the start time and the hours of each night's window (the count typed to confirm). Scheduling is the only confirmation: at that time the worker
 applies the same change as the device page (``uisp_firewall.configure``: fresh backup as the restore point, edit, apply,
 reboot), with the scheduling operator as actor. The window repeats every 24 hours until no CPE is left.
 
@@ -77,10 +77,16 @@ def in_window(value: dict, now) -> bool:
     return at is not None and at <= now and (now - at) % timedelta(days=1) < timedelta(hours=int(value.get("hours") or DEFAULT_WINDOW_HOURS))
 
 
-def classify(device: Device) -> str:
+def context(db) -> dict:
+    """What the current rules are built from, read once for a whole list."""
+    return {"settings": fw.load_settings(db), "networks": fw._networks(db)}
+
+
+def classify(device: Device, current: dict | None = None) -> str:
     """``not_cpe``, ``applied``, ``outdated``, ``active``, ``bridge``, ``own_rules`` or ``candidate`` (no active rules as far as NSM knows).
 
-    ``outdated``: NSM's rules are on the CPE but leave out a default service; it can be scheduled again like a candidate.
+    ``outdated``: NSM's rules are on the CPE but were built from other networks, services or rules; it can be scheduled
+    again like a candidate. Without ``current`` an applied CPE counts as applied.
     """
     data = device.inventory_data or {}
     if device.device_type != CPE_TYPE:
@@ -89,7 +95,10 @@ def classify(device: Device) -> str:
         return "active"
     applied = data.get(fw.KEY) or {}
     if applied.get("status") == "applied":
-        return "applied" if set(fw.DEFAULT_SERVICES) <= set(applied.get("services") or ()) else "outdated"
+        if current is None:
+            return "applied"
+        now = fw.signature(current["networks"], current["settings"]["services"], current["settings"]["rules"], fw.device_rules(device))
+        return "applied" if fw.stored_signature(applied) == now else "outdated"
     read = data.get(fw.READ_KEY) or {}
     if read.get("netmode") and read.get("netmode") != "router":
         return "bridge"
@@ -138,7 +147,7 @@ def _gone(db, device: Device) -> bool:
         return False
 
 
-def queue(db, user, devices: list[Device], at_value, hours, services) -> dict:
+def queue(db, user, devices: list[Device], at_value, hours) -> dict:
     """Schedule the CPEs that have no active rules, or NSM's without a default service; audited. The caller commits."""
     now = utcnow()
     at = _parse(at_value)
@@ -157,8 +166,10 @@ def queue(db, user, devices: list[Device], at_value, hours, services) -> dict:
         raise BulkError("networks", "Salva prima le reti di gestione autorizzate, con almeno una rete IPv4 (Amministrazione → Reti di gestione).")
     batch = uuid.uuid4().hex[:12]
     queued, skipped = 0, []
+    current = context(db)
+    services = current["settings"]["services"]  # for the record: the worker applies the rules current at that time
     for device in devices:
-        kind = classify(device)
+        kind = classify(device, current)
         if device.vendor != "ubiquiti" or not device.external_device_id or kind not in SCHEDULABLE:
             skipped.append({"id": str(device.id), "name": device.name, "reason": kind})
             continue
@@ -262,11 +273,13 @@ def _start(db, device: Device, rows: list[Device], now, stats: dict) -> bool:
         user = db.get(User, uuid.UUID(value["user_id"])) if value.get("user_id") else None
         # Saved before ``configure``, which commits it with its own state: a crash after the apply still gets the check.
         _save(device, status="verifying", applied_at=now.isoformat(), error=None)
-        fw.configure(db, user, device, "", fw.parse_services(value.get("services") or fw.DEFAULT_SERVICES), bulk=True)
+        fw.configure(db, user, device, "", bulk=True)
         stats["started"] += 1
     except (InputError, tarfile.TarError, ValueError) as exc:
         db.rollback()
         device = db.get(Device, device.id)
+        if getattr(exc, "code", None) == "up_to_date":
+            fw.mark_current(db, device)  # the CPE already has the current rules: no longer outdated
         if getattr(exc, "code", None) in SKIP_CODES:
             _save(device, status="skipped", error=str(exc)[:300])
             stats["skipped"] += 1
@@ -330,10 +343,11 @@ def fleet_firewall(request: Request, customer: str = ""):
             except ValueError:
                 raise HTTPException(422, {"code": "customer", "message": "Cliente non valido."}) from None
         rows = list(db.execute(query.order_by(Device.name)).tuples())
+        current = context(db)
         counts = {"candidate": 0, "outdated": 0, "applied": 0, "active": 0, "bridge": 0, "own_rules": 0, "not_cpe": 0}
         candidates, problems = [], []
         for device, name in rows:
-            kind = classify(device)
+            kind = classify(device, current)
             counts[kind] += 1
             common = {"id": str(device.id), "name": device.name, "customer": name}
             if kind in SCHEDULABLE:
@@ -342,8 +356,8 @@ def fleet_firewall(request: Request, customer: str = ""):
             value = schedule_of(device)
             if value.get("status") in PROBLEMS:
                 problems.append({**common, "status": value["status"], "error": value.get("error"), "batch": value.get("batch")})
-        return {"candidates": candidates, "problems": problems, "counts": counts, "batches": _batches(rows, utcnow()), "services": list(fw.SERVICES),
-                "default_services": list(fw.DEFAULT_SERVICES), "max_bulk": MAX_BULK, "default_hours": DEFAULT_WINDOW_HOURS, "max_hours": MAX_WINDOW_HOURS,
+        return {"candidates": candidates, "problems": problems, "counts": counts, "batches": _batches(rows, utcnow()), "services": list(current["settings"]["services"]),
+                "common_rules": len(current["settings"]["rules"]), "max_bulk": MAX_BULK, "default_hours": DEFAULT_WINDOW_HOURS, "max_hours": MAX_WINDOW_HOURS,
                 "can_schedule": core.has_permission(user, "devices.write")}
 
 
@@ -363,7 +377,7 @@ def fleet_firewall_schedule(request: Request, body: dict = Body(default={})):
             raise HTTPException(422, {"code": "confirmation", "message": f"Per confermare scrivi il numero di dispositivi scelti: {len(ids)}"})
         devices = list(db.scalars(select(Device).where(Device.id.in_(ids), Device.decommissioned_at.is_(None))))
         try:
-            result = queue(db, user, devices, body.get("at"), body.get("hours", DEFAULT_WINDOW_HOURS), fw.parse_services(body.get("services") or fw.DEFAULT_SERVICES))
+            result = queue(db, user, devices, body.get("at"), body.get("hours", DEFAULT_WINDOW_HOURS))
         except InputError as exc:
             db.rollback()
             raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
