@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.349 — 2026-11-14
+
+Security
+- **New *Sicurezza → Regole ACL* page.** It holds the common rules for every airOS CPE: the protected services, and extra rules (allow or block one TCP or UDP port, from an IPv4 source or from everyone). NSM writes the extra rules right after the rules that allow the management networks, so they cannot take NSM's own access away. The nightly application moved here from *Esposizione*.
+- After a change of the common rules or of the management networks, the CPEs protected before are listed as to update. Saving a change does not touch any CPE, because every application reboots it.
 ## 0.49.348 — 2026-11-14
 
 Security
